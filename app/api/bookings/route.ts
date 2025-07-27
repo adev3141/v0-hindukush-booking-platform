@@ -1,91 +1,89 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { BookingService } from "@/lib/booking-service"
+import { createClient } from "@supabase/supabase-js"
+
+// Initialize Supabase client
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+if (!supabaseUrl || !supabaseKey) {
+  console.error("Missing Supabase environment variables")
+}
+
+const supabase = createClient(supabaseUrl || "", supabaseKey || "")
+
+export async function GET() {
+  try {
+    const { data: bookings, error } = await supabase
+      .from("bookings")
+      .select("*")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      console.error("Supabase error:", error)
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true, bookings })
+  } catch (error) {
+    console.error("API error:", error)
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 })
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Parse request body
-    let bookingData
-    try {
-      bookingData = await request.json()
-    } catch (error) {
-      console.error("Invalid JSON in request body:", error)
-      return NextResponse.json({ success: false, error: "Invalid JSON in request body" }, { status: 400 })
+    // Check if Supabase is configured
+    if (!supabaseUrl || !supabaseKey) {
+      return NextResponse.json({ success: false, error: "Database not configured" }, { status: 500 })
     }
 
-    // Validate required fields
-    const requiredFields = [
-      "guest_name",
-      "email",
-      "phone",
-      "check_in",
-      "check_out",
-      "room_type",
-      "guests",
-      "total_amount",
-    ]
+    const body = await request.json()
+    console.log("Received booking data:", body)
 
-    const missingFields = requiredFields.filter((field) => !bookingData[field])
+    // Validate required fields
+    const requiredFields = ["guest_name", "email", "phone", "room_type", "check_in", "check_out"]
+    const missingFields = requiredFields.filter((field) => !body[field])
+
     if (missingFields.length > 0) {
       return NextResponse.json(
-        {
-          success: false,
-          error: `Missing required fields: ${missingFields.join(", ")}`,
-        },
+        { success: false, error: `Missing required fields: ${missingFields.join(", ")}` },
         { status: 400 },
       )
     }
 
-    // Validate data types
-    if (typeof bookingData.guests !== "number" || bookingData.guests < 1) {
-      return NextResponse.json({ success: false, error: "Guests must be a positive number" }, { status: 400 })
+    // Generate booking reference
+    const bookingReference = `HH${Date.now().toString().slice(-6)}`
+
+    // Prepare booking data
+    const bookingData = {
+      booking_reference: bookingReference,
+      guest_name: body.guest_name,
+      email: body.email,
+      phone: body.phone,
+      check_in: body.check_in,
+      check_out: body.check_out,
+      room_type: body.room_type,
+      room_number: body.room_number || "TBD",
+      guests: body.guests || 1,
+      total_amount: body.total_amount || 0,
+      currency: body.currency || "PKR",
+      payment_method: body.payment_method || "cash",
+      payment_status: body.payment_status || "pending",
+      booking_status: body.booking_status || "confirmed",
+      special_requests: body.special_requests || null,
     }
 
-    if (typeof bookingData.total_amount !== "number" || bookingData.total_amount < 0) {
-      return NextResponse.json({ success: false, error: "Total amount must be a positive number" }, { status: 400 })
+    console.log("Inserting booking data:", bookingData)
+
+    // Insert booking into Supabase
+    const { data: booking, error } = await supabase.from("bookings").insert([bookingData]).select().single()
+
+    if (error) {
+      console.error("Supabase insert error:", error)
+      return NextResponse.json({ success: false, error: `Database error: ${error.message}` }, { status: 500 })
     }
 
-    // Validate dates
-    const checkIn = new Date(bookingData.check_in)
-    const checkOut = new Date(bookingData.check_out)
-
-    if (isNaN(checkIn.getTime()) || isNaN(checkOut.getTime())) {
-      return NextResponse.json({ success: false, error: "Invalid date format" }, { status: 400 })
-    }
-
-    if (checkOut <= checkIn) {
-      return NextResponse.json({ success: false, error: "Check-out date must be after check-in date" }, { status: 400 })
-    }
-
-    // Check availability
-    try {
-      const availableRooms = await BookingService.checkAvailability(
-        bookingData.check_in,
-        bookingData.check_out,
-        bookingData.room_type,
-      )
-
-      if (availableRooms.length === 0) {
-        return NextResponse.json({ success: false, error: "No rooms available for selected dates" }, { status: 400 })
-      }
-
-      // Assign a room if not specified
-      if (!bookingData.room_id && availableRooms.length > 0) {
-        bookingData.room_id = availableRooms[0].id
-        bookingData.room_number = availableRooms[0].number
-      }
-    } catch (availabilityError) {
-      console.error("Availability check error:", availabilityError)
-      return NextResponse.json({ success: false, error: "Failed to check room availability" }, { status: 500 })
-    }
-
-    // Set default values
-    bookingData.currency = bookingData.currency || "USD"
-    bookingData.payment_method = bookingData.payment_method || "cash"
-    bookingData.payment_status = bookingData.payment_method === "cash" ? "pending" : "paid"
-    bookingData.booking_status = "confirmed"
-
-    // Create booking
-    const booking = await BookingService.createBooking(bookingData)
+    console.log("Booking created successfully:", booking)
 
     return NextResponse.json({
       success: true,
@@ -93,28 +91,13 @@ export async function POST(request: NextRequest) {
       message: "Booking created successfully",
     })
   } catch (error) {
-    console.error("Booking creation error:", error)
-
-    // Handle specific Supabase errors
-    if (error && typeof error === "object" && "message" in error) {
-      return NextResponse.json({ success: false, error: `Database error: ${error.message}` }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: false, error: "Failed to create booking. Please try again." }, { status: 500 })
-  }
-}
-
-export async function GET() {
-  try {
-    const bookings = await BookingService.getBookings()
-    return NextResponse.json({ success: true, bookings })
-  } catch (error) {
-    console.error("Get bookings error:", error)
-
-    if (error && typeof error === "object" && "message" in error) {
-      return NextResponse.json({ success: false, error: `Database error: ${error.message}` }, { status: 500 })
-    }
-
-    return NextResponse.json({ success: false, error: "Failed to fetch bookings" }, { status: 500 })
+    console.error("API error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error: error instanceof Error ? error.message : "Internal server error",
+      },
+      { status: 500 },
+    )
   }
 }
