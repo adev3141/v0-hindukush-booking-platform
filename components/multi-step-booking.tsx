@@ -19,12 +19,83 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 // Mock data for available rooms
 const availableRooms = [
   {
+    id: "dormitory-male",
+    name: "Dormitory - Male",
+    description:
+      "Clean, comfortable dormitory accommodation for male travelers. Perfect for backpackers and budget-conscious adventurers.",
+    price: 2000,
+    available: 8,
+    maxGuests: 1,
+    currency: "Rs",
+    priceUnit: "per bed",
+    features: [
+      "Shared accommodation",
+      "Clean washrooms",
+      "24/7 Power",
+      "Free WiFi",
+      "Breakfast Included",
+      "Lockers available",
+    ],
+  },
+  {
+    id: "dormitory-female",
+    name: "Dormitory - Female",
+    description:
+      "Safe and comfortable dormitory accommodation exclusively for female travelers. Secure environment with all essential amenities.",
+    price: 2000,
+    available: 6,
+    maxGuests: 1,
+    currency: "Rs",
+    priceUnit: "per bed",
+    features: [
+      "Female-only accommodation",
+      "Clean washrooms",
+      "24/7 Power",
+      "Free WiFi",
+      "Breakfast Included",
+      "Secure lockers",
+    ],
+  },
+  {
+    id: "budget-single",
+    name: "Budget Room - Single",
+    description:
+      "Affordable private room with attached bathroom, perfect for solo travelers seeking privacy and comfort.",
+    price: 6000,
+    available: 4,
+    maxGuests: 1,
+    currency: "Rs",
+    priceUnit: "per night",
+    features: ["Private room", "Attached bathroom", "24/7 Power", "Free WiFi", "Breakfast Included", "Mountain view"],
+  },
+  {
+    id: "budget-double",
+    name: "Budget Room - Double",
+    description:
+      "Comfortable private room with attached bathroom for couples or friends. Excellent value accommodation with all essential amenities.",
+    price: 10000,
+    available: 3,
+    maxGuests: 2,
+    currency: "Rs",
+    priceUnit: "per night",
+    features: [
+      "Private room for 2",
+      "Attached bathroom",
+      "24/7 Power",
+      "Free WiFi",
+      "Breakfast Included",
+      "Garden view",
+    ],
+  },
+  {
     id: "standard",
     name: "Standard Room",
     description: "Comfortable room with garden views, perfect for solo travelers or couples.",
     price: 80,
     available: 5,
     maxGuests: 2,
+    currency: "$",
+    priceUnit: "per night",
     features: ["Garden View", "Inverter AC (Heating/Cooling)", "24/7 Power", "Free WiFi", "Breakfast Included"],
   },
   {
@@ -34,6 +105,8 @@ const availableRooms = [
     price: 120,
     available: 3,
     maxGuests: 3,
+    currency: "$",
+    priceUnit: "per night",
     features: [
       "Garden View",
       "Inverter AC (Heating/Cooling)",
@@ -51,6 +124,8 @@ const availableRooms = [
     price: 180,
     available: 2,
     maxGuests: 5,
+    currency: "$",
+    priceUnit: "per night",
     features: [
       "Garden Access",
       "Inverter AC (Heating/Cooling)",
@@ -68,6 +143,8 @@ const availableRooms = [
     price: 220,
     available: 1,
     maxGuests: 2,
+    currency: "$",
+    priceUnit: "per night",
     features: [
       "Park View",
       "Inverter AC (Heating/Cooling)",
@@ -83,7 +160,7 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
   const [step, setStep] = useState(initialData ? 2 : 1)
   const [checkIn, setCheckIn] = useState(initialData?.checkIn || undefined)
   const [checkOut, setCheckOut] = useState(initialData?.checkOut || undefined)
-  const [guests, setGuests] = useState(initialData?.guests?.toString() || "2")
+  const [guests, setGuests] = useState(initialData?.guests?.toString() || "1")
   const [rooms, setRooms] = useState(initialData?.rooms?.toString() || "1")
   const [selectedRoomType, setSelectedRoomType] = useState("")
   const [roomCount, setRoomCount] = useState(1)
@@ -108,29 +185,42 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
   })
   const [bookingConfirmed, setBookingConfirmed] = useState(false)
   const [bookingReference, setBookingReference] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState("")
 
   const handleDateSelection = () => {
     if (!checkIn || !checkOut) {
-      alert("Please select both check-in and check-out dates")
+      setError("Please select both check-in and check-out dates")
       return
     }
+    setError("")
     setStep(2)
   }
 
   const handleRoomSelection = () => {
     if (!selectedRoomType) {
-      alert("Please select a room type")
+      setError("Please select a room type")
       return
     }
+    setError("")
     setStep(3)
   }
 
   const handleGuestInfoSubmit = () => {
     // Validate guest information
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
-      alert("Please fill in all required guest information fields")
+      setError("Please fill in all required guest information fields")
       return
     }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(formData.email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
+    setError("")
     setStep(4)
   }
 
@@ -149,27 +239,90 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
     setBankTransferDetails((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handlePaymentSubmit = (e: React.FormEvent) => {
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    setIsSubmitting(true)
+    setError("")
 
     // Validate payment details based on selected method
     if (paymentMethod === "credit-card") {
       if (!cardDetails.cardNumber || !cardDetails.cardName || !cardDetails.expiryDate || !cardDetails.cvv) {
-        alert("Please fill in all credit card details")
+        setError("Please fill in all credit card details")
+        setIsSubmitting(false)
         return
       }
     } else if (paymentMethod === "bank-transfer") {
       if (!bankTransferDetails.accountName || !bankTransferDetails.bankName || !bankTransferDetails.reference) {
-        alert("Please fill in all bank transfer details")
+        setError("Please fill in all bank transfer details")
+        setIsSubmitting(false)
         return
       }
     }
 
-    // Generate a random booking reference
-    const reference = `HKS-${Math.floor(100000 + Math.random() * 900000)}`
-    setBookingReference(reference)
-    setBookingConfirmed(true)
-    setStep(5)
+    try {
+      const bookingData = {
+        guest_name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        phone: formData.phone,
+        check_in: checkIn?.toISOString().split("T")[0],
+        check_out: checkOut?.toISOString().split("T")[0],
+        room_type: selectedRoomType,
+        room_number: selectedRoom?.name || `Room ${roomCount}`,
+        guests: Number.parseInt(guests),
+        total_amount: totalPrice,
+        currency: selectedRoom?.currency || "USD",
+        payment_method: paymentMethod,
+        payment_status: paymentMethod === "cash" ? "pending" : "paid",
+        booking_status: "confirmed",
+        special_requests: formData.specialRequests,
+      }
+
+      console.log("Sending booking data:", bookingData)
+
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(bookingData),
+      })
+
+      console.log("Response status:", response.status)
+      console.log("Response headers:", response.headers)
+
+      // Check if response is ok
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error("Response error text:", errorText)
+        throw new Error(`HTTP ${response.status}: ${errorText}`)
+      }
+
+      // Try to parse JSON
+      let result
+      try {
+        const responseText = await response.text()
+        console.log("Response text:", responseText)
+        result = JSON.parse(responseText)
+      } catch (parseError) {
+        console.error("JSON parse error:", parseError)
+        throw new Error("Invalid response format from server")
+      }
+
+      console.log("Parsed result:", result)
+
+      if (result.success) {
+        setBookingReference(result.booking.booking_reference)
+        setBookingConfirmed(true)
+        setStep(5)
+      } else {
+        throw new Error(result.error || "Unknown error occurred")
+      }
+    } catch (error) {
+      console.error("Booking error:", error)
+      setError(error instanceof Error ? error.message : "Failed to create booking. Please try again.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const calculateNights = () => {
@@ -185,15 +338,35 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
 
   const nights = calculateNights()
   const selectedRoom = availableRooms.find((room) => room.id === selectedRoomType)
-  const totalPrice = selectedRoom ? selectedRoom.price * nights * roomCount : 0
+
+  // Calculate total price based on room type
+  const calculateTotalPrice = () => {
+    if (!selectedRoom) return 0
+
+    // For dormitories, price is per bed regardless of nights
+    if (selectedRoom.id.includes("dormitory")) {
+      return selectedRoom.price * roomCount
+    }
+
+    // For other rooms, price is per night
+    return selectedRoom.price * nights * roomCount
+  }
+
+  const totalPrice = calculateTotalPrice()
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Book Your Stay</CardTitle>
-        <CardDescription>Check availability and book your room at Hindukush Sarai</CardDescription>
+        <CardDescription>Check availability and book your room at Hindukush Heights Chitral</CardDescription>
       </CardHeader>
       <CardContent>
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 text-sm">{error}</p>
+          </div>
+        )}
+
         <div className="mb-8">
           <div className="flex items-center">
             <div
@@ -308,20 +481,38 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
               </div>
 
               <div className="grid gap-2">
-                <Label htmlFor="rooms">Number of Rooms</Label>
+                <Label htmlFor="rooms">Number of Rooms/Beds</Label>
                 <Select value={rooms} onValueChange={setRooms}>
                   <SelectTrigger id="rooms" className="w-full">
-                    <SelectValue placeholder="Select number of rooms" />
+                    <SelectValue placeholder="Select number of rooms/beds" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="1">1 Room</SelectItem>
-                    <SelectItem value="2">2 Rooms</SelectItem>
-                    <SelectItem value="3">3 Rooms</SelectItem>
-                    <SelectItem value="4">4 Rooms</SelectItem>
-                    <SelectItem value="5">5+ Rooms</SelectItem>
+                    <SelectItem value="1">1 Room/Bed</SelectItem>
+                    <SelectItem value="2">2 Rooms/Beds</SelectItem>
+                    <SelectItem value="3">3 Rooms/Beds</SelectItem>
+                    <SelectItem value="4">4 Rooms/Beds</SelectItem>
+                    <SelectItem value="5">5+ Rooms/Beds</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="visit-purpose">Purpose of Visit</Label>
+              <Select>
+                <SelectTrigger id="visit-purpose" className="w-full">
+                  <SelectValue placeholder="Select purpose of visit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family">Family Vacation</SelectItem>
+                  <SelectItem value="business">Business Trip</SelectItem>
+                  <SelectItem value="corporate">Corporate Retreat</SelectItem>
+                  <SelectItem value="ngo">NGO Work</SelectItem>
+                  <SelectItem value="adventure">Adventure Tourism</SelectItem>
+                  <SelectItem value="backpacking">Backpacking</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <Button className="w-full" onClick={handleDateSelection}>
@@ -348,7 +539,7 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
             </div>
 
             <div className="space-y-4">
-              <h3 className="font-medium">Available Rooms</h3>
+              <h3 className="font-medium">Available Accommodation</h3>
 
               {availableRooms.map((room) => (
                 <div
@@ -381,9 +572,12 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                       </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-lg font-bold">${room.price}</div>
-                      <div className="text-sm text-muted-foreground">per night</div>
-                      <div className="mt-1 text-xs text-emerald-600">{room.available} rooms left</div>
+                      <div className="text-lg font-bold">
+                        {room.currency}
+                        {room.price.toLocaleString()}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{room.priceUnit}</div>
+                      <div className="mt-1 text-xs text-emerald-600">{room.available} available</div>
                     </div>
                   </div>
                 </div>
@@ -391,17 +585,24 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
 
               {selectedRoomType && (
                 <div className="mt-4">
-                  <Label htmlFor="room-count">Number of rooms</Label>
+                  <Label htmlFor="room-count">Number of rooms/beds</Label>
                   <Select value={roomCount.toString()} onValueChange={(value) => setRoomCount(Number.parseInt(value))}>
                     <SelectTrigger id="room-count" className="w-full mt-1">
-                      <SelectValue placeholder="Select number of rooms" />
+                      <SelectValue placeholder="Select number of rooms/beds" />
                     </SelectTrigger>
                     <SelectContent>
                       {Array.from(
                         { length: Math.min(5, availableRooms.find((r) => r.id === selectedRoomType)?.available || 1) },
                         (_, i) => (
                           <SelectItem key={i + 1} value={(i + 1).toString()}>
-                            {i + 1} {i === 0 ? "room" : "rooms"}
+                            {i + 1}{" "}
+                            {selectedRoomType.includes("dormitory")
+                              ? i === 0
+                                ? "bed"
+                                : "beds"
+                              : i === 0
+                                ? "room"
+                                : "rooms"}
                           </SelectItem>
                         ),
                       )}
@@ -438,7 +639,15 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
               <div>
                 <h3 className="font-medium">{selectedRoom?.name}</h3>
                 <p className="text-sm text-muted-foreground">
-                  {roomCount} room{roomCount !== 1 ? "s" : ""} · {guests} guest
+                  {roomCount}{" "}
+                  {selectedRoomType?.includes("dormitory")
+                    ? roomCount !== 1
+                      ? "beds"
+                      : "bed"
+                    : roomCount !== 1
+                      ? "rooms"
+                      : "room"}{" "}
+                  · {guests} guest
                   {Number.parseInt(guests) !== 1 ? "s" : ""}
                 </p>
               </div>
@@ -450,14 +659,23 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
             <div className="border-t pt-4 mt-4">
               <div className="flex justify-between mb-2">
                 <span>
-                  ${selectedRoom?.price} x {nights} night{nights !== 1 ? "s" : ""} x {roomCount} room
-                  {roomCount !== 1 ? "s" : ""}
+                  {selectedRoom?.currency}
+                  {selectedRoom?.price.toLocaleString()}
+                  {selectedRoom?.id.includes("dormitory")
+                    ? ` x ${roomCount} bed${roomCount !== 1 ? "s" : ""}`
+                    : ` x ${nights} night${nights !== 1 ? "s" : ""} x ${roomCount} room${roomCount !== 1 ? "s" : ""}`}
                 </span>
-                <span>${totalPrice}</span>
+                <span>
+                  {selectedRoom?.currency}
+                  {totalPrice.toLocaleString()}
+                </span>
               </div>
               <div className="flex justify-between font-bold">
                 <span>Total</span>
-                <span>${totalPrice}</span>
+                <span>
+                  {selectedRoom?.currency}
+                  {totalPrice.toLocaleString()}
+                </span>
               </div>
             </div>
 
@@ -553,7 +771,15 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                 <div>
                   <h3 className="font-medium">{selectedRoom?.name}</h3>
                   <p className="text-sm text-muted-foreground">
-                    {roomCount} room{roomCount !== 1 ? "s" : ""} · {guests} guest
+                    {roomCount}{" "}
+                    {selectedRoomType?.includes("dormitory")
+                      ? roomCount !== 1
+                        ? "beds"
+                        : "bed"
+                      : roomCount !== 1
+                        ? "rooms"
+                        : "room"}{" "}
+                    · {guests} guest
                     {Number.parseInt(guests) !== 1 ? "s" : ""}
                   </p>
                 </div>
@@ -565,14 +791,23 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
               <div className="border-t pt-4 mt-4">
                 <div className="flex justify-between mb-2">
                   <span>
-                    ${selectedRoom?.price} x {nights} night{nights !== 1 ? "s" : ""} x {roomCount} room
-                    {roomCount !== 1 ? "s" : ""}
+                    {selectedRoom?.currency}
+                    {selectedRoom?.price.toLocaleString()}
+                    {selectedRoom?.id.includes("dormitory")
+                      ? ` x ${roomCount} bed${roomCount !== 1 ? "s" : ""}`
+                      : ` x ${nights} night${nights !== 1 ? "s" : ""} x ${roomCount} room${roomCount !== 1 ? "s" : ""}`}
                   </span>
-                  <span>${totalPrice}</span>
+                  <span>
+                    {selectedRoom?.currency}
+                    {totalPrice.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between font-bold">
                   <span>Total</span>
-                  <span>${totalPrice}</span>
+                  <span>
+                    {selectedRoom?.currency}
+                    {totalPrice.toLocaleString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -667,7 +902,7 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                 <div className="bg-muted p-4 rounded-md mb-4">
                   <p className="font-medium">Bank Account Details:</p>
                   <p>Bank: National Bank of Pakistan</p>
-                  <p>Account Name: Hindukush Sarai</p>
+                  <p>Account Name: Hindukush Heights Chitral</p>
                   <p>Account Number: 1234-5678-9012-3456</p>
                   <p>IBAN: PK36NBPA0123456789012345</p>
                   <p>Branch: Chitral Main Branch</p>
@@ -718,7 +953,7 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                   <p className="font-medium">Important Information:</p>
                   <ul className="list-disc list-inside space-y-1 text-sm">
                     <li>Please arrive with valid ID for all guests</li>
-                    <li>Payment can be made in cash (PKR) or by card upon arrival</li>
+                    <li>Payment can be made in cash (PKR/USD) or by card upon arrival</li>
                     <li>Your reservation will be held until 6:00 PM on the day of arrival</li>
                     <li>For late arrivals, please contact the hotel in advance</li>
                   </ul>
@@ -748,11 +983,11 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
             </div>
 
             <div className="flex gap-4">
-              <Button type="button" variant="outline" className="w-1/2" onClick={() => setStep(3)}>
+              <Button type="button" variant="outline" className="w-1/2 bg-transparent" onClick={() => setStep(3)}>
                 Back
               </Button>
-              <Button type="submit" className="w-1/2">
-                Complete Booking
+              <Button type="submit" className="w-1/2" disabled={isSubmitting}>
+                {isSubmitting ? "Processing..." : "Complete Booking"}
               </Button>
             </div>
           </form>
@@ -766,7 +1001,8 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
               </div>
               <h3 className="text-xl font-bold">Booking Confirmed!</h3>
               <p className="text-muted-foreground mt-2">
-                Your booking at Hindukush Sarai has been confirmed. We look forward to welcoming you!
+                Your booking at Hindukush Heights Chitral has been confirmed. We look forward to welcoming you with
+                traditional mountain hospitality!
               </p>
             </div>
 
@@ -785,11 +1021,13 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                   <span className="font-medium">{checkOut ? format(checkOut, "EEEE, MMMM d, yyyy") : ""}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Room Type</span>
+                  <span className="text-muted-foreground">Accommodation</span>
                   <span className="font-medium">{selectedRoom?.name}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Number of Rooms</span>
+                  <span className="text-muted-foreground">
+                    Number of {selectedRoomType?.includes("dormitory") ? "Beds" : "Rooms"}
+                  </span>
                   <span className="font-medium">{roomCount}</span>
                 </div>
                 <div className="flex justify-between">
@@ -798,7 +1036,10 @@ export function MultiStepBooking({ initialData }: { initialData?: any }) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Total Amount</span>
-                  <span className="font-medium">${totalPrice}</span>
+                  <span className="font-medium">
+                    {selectedRoom?.currency}
+                    {totalPrice.toLocaleString()}
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Payment Method</span>

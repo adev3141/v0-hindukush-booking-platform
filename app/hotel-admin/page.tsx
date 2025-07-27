@@ -22,7 +22,6 @@ import {
   Mail,
   Edit,
   Trash2,
-  AlertTriangle,
   Loader2,
 } from "lucide-react"
 
@@ -45,10 +44,14 @@ import {
 } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
+import { useBookings } from "@/hooks/use-bookings"
+import { useInquiries } from "@/hooks/use-inquiries"
+import { useRooms } from "@/hooks/use-rooms"
+
 // Mock data for bookings
 const initialBookings = [
   {
-    id: "HKS-123456",
+    id: "HKH-123456",
     guestName: "Ahmed Khan",
     checkIn: new Date(2023, 6, 15),
     checkOut: new Date(2023, 6, 18),
@@ -63,7 +66,7 @@ const initialBookings = [
     specialRequests: "Late check-in requested",
   },
   {
-    id: "HKS-234567",
+    id: "HKH-234567",
     guestName: "Sarah Johnson",
     checkIn: new Date(2023, 6, 20),
     checkOut: new Date(2023, 6, 25),
@@ -78,14 +81,14 @@ const initialBookings = [
     specialRequests: "Ground floor room preferred",
   },
   {
-    id: "HKS-345678",
+    id: "HKH-345678",
     guestName: "Michael Brown",
     checkIn: new Date(2023, 6, 10),
     checkOut: new Date(2023, 6, 12),
-    roomType: "Standard Room",
+    roomType: "Budget Room - Single",
     guests: 1,
     status: "checked-in",
-    totalAmount: 160,
+    totalAmount: 12000,
     paymentStatus: "paid",
     email: "michael.b@example.com",
     phone: "+92 333 4567890",
@@ -93,7 +96,7 @@ const initialBookings = [
     specialRequests: "",
   },
   {
-    id: "HKS-456789",
+    id: "HKH-456789",
     guestName: "Emma Wilson",
     checkIn: new Date(2023, 6, 5),
     checkOut: new Date(2023, 6, 10),
@@ -108,18 +111,18 @@ const initialBookings = [
     specialRequests: "Airport pickup arranged",
   },
   {
-    id: "HKS-567890",
+    id: "HKH-567890",
     guestName: "Ali Hassan",
     checkIn: new Date(2023, 6, 25),
     checkOut: new Date(2023, 6, 30),
-    roomType: "Deluxe Room",
-    guests: 3,
+    roomType: "Dormitory - Male",
+    guests: 1,
     status: "confirmed",
-    totalAmount: 600,
+    totalAmount: 2000,
     paymentStatus: "pending",
     email: "ali.h@example.com",
     phone: "+92 312 3456789",
-    roomNumber: "202",
+    roomNumber: "Bed 5",
     specialRequests: "Vegetarian meals only",
   },
 ]
@@ -132,7 +135,7 @@ const initialInquiries = [
     email: "fatima.a@example.com",
     phone: "+92 321 1234567",
     date: new Date(2023, 6, 5),
-    message: "I'm interested in booking a family suite for 5 people in August. Do you have availability?",
+    message: "I'm interested in booking a female dormitory bed for 3 nights in August. Do you have availability?",
     status: "new",
     reply: "",
   },
@@ -144,7 +147,7 @@ const initialInquiries = [
     date: new Date(2023, 6, 4),
     message: "Do you offer airport pickup services? We'll be arriving at Chitral Airport on July 20.",
     status: "replied",
-    reply: "Yes, we offer airport pickup services for $15. Please confirm your flight details.",
+    reply: "Yes, we offer airport pickup services for Rs 1,500. Please confirm your flight details.",
   },
   {
     id: "INQ-125",
@@ -152,7 +155,7 @@ const initialInquiries = [
     email: "ayesha.k@example.com",
     phone: "+92 333 5678901",
     date: new Date(2023, 6, 3),
-    message: "We're a group of 10 people from an NGO. Do you offer special rates for groups?",
+    message: "We're a group of 10 backpackers. Do you offer special rates for groups booking dormitory beds?",
     status: "new",
     reply: "",
   },
@@ -164,12 +167,16 @@ const initialInquiries = [
     date: new Date(2023, 6, 2),
     message: "Is it possible to arrange a guided tour to Kalash Valley from your hotel?",
     status: "replied",
-    reply: "Yes, we can arrange guided tours to Kalash Valley. The cost is $50 per person for a full day tour.",
+    reply: "Yes, we can arrange guided tours to Kalash Valley. The cost is Rs 5,000 per person for a full day tour.",
   },
 ]
 
-// Mock data for room availability
+// Mock data for room availability - updated with new room types
 const roomAvailability = {
+  dormitory_male: { total: 12, available: 8 },
+  dormitory_female: { total: 8, available: 6 },
+  budget_single: { total: 6, available: 4 },
+  budget_double: { total: 4, available: 3 },
   standard: { total: 10, available: 6 },
   deluxe: { total: 8, available: 3 },
   family: { total: 5, available: 2 },
@@ -182,8 +189,16 @@ export default function HotelAdminPage() {
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [selectedInquiry, setSelectedInquiry] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
-  const [bookings, setBookings] = useState(initialBookings)
-  const [inquiries, setInquiries] = useState(initialInquiries)
+  // Replace this section at the top of the component:
+  // const [bookings, setBookings] = useState(initialBookings)
+  // const [inquiries, setInquiries] = useState(initialInquiries)
+  // const [rooms, setRooms] = useState(initialRooms)
+
+  // With this:
+  // Inside the component:
+  const { bookings, loading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useBookings()
+  const { inquiries, loading: inquiriesLoading, replyToInquiry } = useInquiries()
+  const { rooms, loading: roomsLoading, createRoom, updateRoom, deleteRoom } = useRooms()
 
   // Room management state
   const [showRoomManagement, setShowRoomManagement] = useState(false)
@@ -199,56 +214,80 @@ export default function HotelAdminPage() {
     amenities: [],
     status: "available",
     floor: 1,
-    price: 0,
     description: "",
   })
   const [formErrors, setFormErrors] = useState({})
 
-  // Mock data for individual rooms
+  // Centralized pricing management - updated with new room types
+  const [roomPricing, setRoomPricing] = useState({
+    dormitory_male: 2000,
+    dormitory_female: 2000,
+    budget_single: 6000,
+    budget_double: 10000,
+    standard: 80,
+    deluxe: 120,
+    family: 180,
+    executive: 220,
+  })
+
+  const [pricingRules, setPricingRules] = useState({
+    peakSeasonMultiplier: 25,
+    groupDiscount: 10,
+    extendedStayDiscount: 15,
+    corporateDiscount: 20,
+  })
+
+  // Mock data for individual rooms - updated with new room types
   const initialRooms = [
     {
-      id: "room-101",
-      number: "101",
-      type: "standard",
-      capacity: 2,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom"],
+      id: "dorm-male-bed-1",
+      number: "Bed 1",
+      type: "dormitory_male",
+      capacity: 1,
+      amenities: ["Shared accommodation", "Clean washrooms", "WiFi", "Lockers"],
       status: "available",
       floor: 1,
-      price: 80,
-      description: "Comfortable standard room with mountain view",
+      description: "Male dormitory bed with shared facilities",
     },
     {
-      id: "room-102",
-      number: "102",
-      type: "standard",
-      capacity: 2,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom"],
+      id: "dorm-female-bed-1",
+      number: "Bed 1",
+      type: "dormitory_female",
+      capacity: 1,
+      amenities: ["Female-only accommodation", "Clean washrooms", "WiFi", "Secure lockers"],
+      status: "available",
+      floor: 1,
+      description: "Female dormitory bed with shared facilities",
+    },
+    {
+      id: "budget-single-101",
+      number: "101",
+      type: "budget_single",
+      capacity: 1,
+      amenities: ["Private room", "Attached bathroom", "WiFi", "Mountain view"],
       status: "occupied",
       floor: 1,
-      price: 80,
-      description: "Comfortable standard room with garden view",
+      description: "Budget single room with attached bathroom",
     },
     {
-      id: "room-201",
+      id: "budget-double-201",
       number: "201",
-      type: "deluxe",
-      capacity: 3,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom", "Mini Bar", "Balcony"],
+      type: "budget_double",
+      capacity: 2,
+      amenities: ["Private room for 2", "Attached bathroom", "WiFi", "Garden view"],
       status: "available",
       floor: 2,
-      price: 120,
-      description: "Spacious deluxe room with panoramic mountain views",
+      description: "Budget double room with attached bathroom",
     },
     {
       id: "room-301",
       number: "301",
-      type: "family",
-      capacity: 4,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom", "Mini Bar", "Kitchenette"],
-      status: "maintenance",
+      type: "standard",
+      capacity: 2,
+      amenities: ["WiFi", "AC", "TV", "Private Bathroom"],
+      status: "available",
       floor: 3,
-      price: 180,
-      description: "Large family suite perfect for groups",
+      description: "Comfortable standard room with garden view",
     },
     {
       id: "room-401",
@@ -258,18 +297,18 @@ export default function HotelAdminPage() {
       amenities: ["WiFi", "AC", "TV", "Private Bathroom", "Mini Bar", "Balcony", "Work Desk", "Premium Bedding"],
       status: "available",
       floor: 4,
-      price: 220,
       description: "Luxury executive suite with premium amenities",
     },
   ]
 
-  const [rooms, setRooms] = useState(initialRooms)
+  // const [rooms, setRooms] = useState(initialRooms)
 
   const availableAmenities = [
     "WiFi",
     "AC",
     "TV",
     "Private Bathroom",
+    "Attached bathroom",
     "Mini Bar",
     "Balcony",
     "Kitchenette",
@@ -280,9 +319,18 @@ export default function HotelAdminPage() {
     "Coffee Maker",
     "Mountain View",
     "Garden View",
+    "Shared accommodation",
+    "Clean washrooms",
+    "Lockers",
+    "Secure lockers",
+    "Female-only accommodation",
   ]
 
   const roomTypes = [
+    { value: "dormitory_male", label: "Dormitory - Male" },
+    { value: "dormitory_female", label: "Dormitory - Female" },
+    { value: "budget_single", label: "Budget Room - Single" },
+    { value: "budget_double", label: "Budget Room - Double" },
     { value: "standard", label: "Standard Room" },
     { value: "deluxe", label: "Deluxe Room" },
     { value: "family", label: "Family Suite" },
@@ -302,21 +350,40 @@ export default function HotelAdminPage() {
   const [editFormData, setEditFormData] = useState({})
   const [cancelReason, setCancelReason] = useState("")
 
-  const filteredBookings = bookings.filter(
+  const filteredBookings = bookings?.filter(
     (booking) =>
-      booking.guestName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.email.toLowerCase().includes(searchQuery.toLowerCase()),
+      booking.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
+
+  // Helper function to get room price from centralized pricing
+  const getRoomPrice = (roomType) => {
+    return roomPricing[roomType] || 0
+  }
+
+  // Helper function to get room type label
+  const getRoomTypeLabel = (roomType) => {
+    const type = roomTypes.find((t) => t.value === roomType)
+    return type ? type.label : roomType
+  }
+
+  // Helper function to get currency for room type
+  const getRoomCurrency = (roomType) => {
+    if (roomType?.includes("dormitory") || roomType?.includes("budget")) {
+      return "Rs"
+    }
+    return "$"
+  }
 
   // Validation functions
   const validateRoomData = (data) => {
     const errors = {}
 
     if (!data.number || data.number.trim() === "") {
-      errors.number = "Room number is required"
-    } else if (!/^[A-Z0-9]{1,4}$/i.test(data.number)) {
-      errors.number = "Room number must be 1-4 alphanumeric characters"
+      errors.number = "Room/bed number is required"
+    } else if (!/^[A-Z0-9\s]{1,10}$/i.test(data.number)) {
+      errors.number = "Room/bed number must be 1-10 alphanumeric characters"
     }
 
     if (!data.type) {
@@ -329,10 +396,6 @@ export default function HotelAdminPage() {
 
     if (!data.floor || data.floor < 1 || data.floor > 20) {
       errors.floor = "Floor must be between 1 and 20"
-    }
-
-    if (!data.price || data.price < 50 || data.price > 2000) {
-      errors.price = "Price must be between $50 and $2000"
     }
 
     if (!data.amenities || data.amenities.length === 0) {
@@ -385,21 +448,13 @@ export default function HotelAdminPage() {
 
   // Add debugging console logs to verify button clicks
   const handleCheckIn = async () => {
-    console.log("Check-in button clicked for:", selectedBooking?.guestName)
     if (!selectedBooking) return
-
     try {
-      await simulateAsyncOperation("check-in")
-
-      setBookings((prev) =>
-        prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, status: "checked-in" } : booking)),
-      )
-
-      setSelectedBooking((prev) => ({ ...prev, status: "checked-in" }))
+      await updateBooking(selectedBooking.id, { booking_status: "checked-in" })
       setShowCheckInDialog(false)
-      showToast("Success", `${selectedBooking.guestName} has been checked in to room ${selectedBooking.roomNumber}`)
+      showToast("Success", `${selectedBooking.guest_name} has been checked in`)
     } catch (error) {
-      handleError(error, "check in guest")
+      showToast("Error", "Failed to check in guest", "destructive")
     }
   }
 
@@ -410,13 +465,13 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("check-out")
 
-      setBookings((prev) =>
-        prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, status: "checked-out" } : booking)),
-      )
+      // setBookings((prev) =>
+      //   prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, status: "checked-out" } : booking)),
+      // )
 
       setSelectedBooking((prev) => ({ ...prev, status: "checked-out" }))
       setShowCheckOutDialog(false)
-      showToast("Success", `${selectedBooking.guestName} has been checked out from room ${selectedBooking.roomNumber}`)
+      showToast("Success", `${selectedBooking.guestName} has been checked out from ${selectedBooking.roomNumber}`)
     } catch (error) {
       handleError(error, "check out guest")
     }
@@ -454,9 +509,9 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("edit-booking")
 
-      setBookings((prev) =>
-        prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, ...editFormData } : booking)),
-      )
+      // setBookings((prev) =>
+      //   prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, ...editFormData } : booking)),
+      // )
 
       setSelectedBooking((prev) => ({ ...prev, ...editFormData }))
       setShowEditDialog(false)
@@ -477,11 +532,11 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("cancel-booking")
 
-      setBookings((prev) =>
-        prev.map((booking) =>
-          booking.id === selectedBooking.id ? { ...booking, status: "cancelled", cancelReason } : booking,
-        ),
-      )
+      // setBookings((prev) =>
+      //   prev.map((booking) =>
+      //     booking.id === selectedBooking.id ? { ...booking, status: "cancelled", cancelReason } : booking,
+      //   ),
+      // )
 
       setSelectedBooking((prev) => ({ ...prev, status: "cancelled", cancelReason }))
       setShowCancelDialog(false)
@@ -497,9 +552,9 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("status-change", 500)
 
-      setBookings((prev) =>
-        prev.map((booking) => (booking.id === bookingId ? { ...booking, status: newStatus } : booking)),
-      )
+      // setBookings((prev) =>
+      //   prev.map((booking) => (booking.id === bookingId ? { ...booking, status: newStatus } : booking)),
+      // )
 
       if (selectedBooking && selectedBooking.id === bookingId) {
         setSelectedBooking((prev) => ({ ...prev, status: newStatus }))
@@ -515,9 +570,9 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("payment-status-change", 500)
 
-      setBookings((prev) =>
-        prev.map((booking) => (booking.id === bookingId ? { ...booking, paymentStatus: newStatus } : booking)),
-      )
+      // setBookings((prev) =>
+      //   prev.map((booking) => (booking.id === bookingId ? { ...booking, paymentStatus: newStatus } : booking)),
+      // )
 
       if (selectedBooking && selectedBooking.id === bookingId) {
         setSelectedBooking((prev) => ({ ...prev, paymentStatus: newStatus }))
@@ -534,9 +589,9 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("inquiry-status-change", 500)
 
-      setInquiries((prev) =>
-        prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
-      )
+      // setInquiries((prev) =>
+      //   prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
+      // )
 
       if (selectedInquiry && selectedInquiry.id === inquiryId) {
         setSelectedInquiry((prev) => ({ ...prev, status: newStatus }))
@@ -558,11 +613,11 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("send-inquiry-reply")
 
-      setInquiries((prev) =>
-        prev.map((inquiry) =>
-          inquiry.id === selectedInquiry.id ? { ...inquiry, status: "replied", reply: reply.trim() } : inquiry,
-        ),
-      )
+      // setInquiries((prev) =>
+      //   prev.map((inquiry) =>
+      //     inquiry.id === selectedInquiry.id ? { ...inquiry, status: "replied", reply: reply.trim() } : inquiry,
+      //   ),
+      // )
 
       setSelectedInquiry((prev) => ({ ...prev, status: "replied", reply: reply.trim() }))
       showToast("Success", `Reply sent to ${selectedInquiry.email}`)
@@ -581,24 +636,23 @@ export default function HotelAdminPage() {
       return
     }
 
-    // Check if room number already exists
-    if (rooms.find((room) => room.number === roomFormData.number)) {
-      showToast("Error", "Room number already exists", "destructive")
-      return
-    }
+    // Check if room number already exists for the same type
+    // if (rooms.find((room) => room.number === roomFormData.number && room.type === roomFormData.type)) {
+    //   showToast("Error", "Room/bed number already exists for this type", "destructive")
+    //   return
+    // }
 
     try {
       await simulateAsyncOperation("add-room")
 
       const newRoom = {
-        id: `room-${roomFormData.number}-${Date.now()}`,
+        id: `${roomFormData.type}-${roomFormData.number}-${Date.now()}`,
         ...roomFormData,
         capacity: Number.parseInt(roomFormData.capacity),
         floor: Number.parseInt(roomFormData.floor),
-        price: Number.parseFloat(roomFormData.price),
       }
 
-      setRooms((prev) => [...prev, newRoom])
+      // setRooms((prev) => [...prev, newRoom])
       setShowAddRoomDialog(false)
       setRoomFormData({
         number: "",
@@ -607,11 +661,10 @@ export default function HotelAdminPage() {
         amenities: [],
         status: "available",
         floor: 1,
-        price: 0,
         description: "",
       })
       setFormErrors({})
-      showToast("Success", `Room ${roomFormData.number} added successfully`)
+      showToast("Success", `${getRoomTypeLabel(roomFormData.type)} ${roomFormData.number} added successfully`)
     } catch (error) {
       handleError(error, "add room")
     }
@@ -627,27 +680,26 @@ export default function HotelAdminPage() {
     }
 
     // Check if room number already exists (excluding current room)
-    if (rooms.find((room) => room.number === roomFormData.number && room.id !== selectedRoom.id)) {
-      showToast("Error", "Room number already exists", "destructive")
-      return
-    }
+    // if (rooms.find((room) => room.number === roomFormData.number && room.type === roomFormData.type && room.id !== selectedRoom.id)) {
+    //   showToast("Error", "Room/bed number already exists for this type", "destructive")
+    //   return
+    // }
 
     try {
       await simulateAsyncOperation("edit-room")
 
-      setRooms((prev) =>
-        prev.map((room) =>
-          room.id === selectedRoom.id
-            ? {
-                ...room,
-                ...roomFormData,
-                capacity: Number.parseInt(roomFormData.capacity),
-                floor: Number.parseInt(roomFormData.floor),
-                price: Number.parseFloat(roomFormData.price),
-              }
-            : room,
-        ),
-      )
+      // setRooms((prev) =>
+      //   prev.map((room) =>
+      //     room.id === selectedRoom.id
+      //       ? {
+      //           ...room,
+      //           ...roomFormData,
+      //           capacity: Number.parseInt(roomFormData.capacity),
+      //           floor: Number.parseInt(roomFormData.floor),
+      //         }
+      //       : room,
+      //   ),
+      // )
 
       setShowEditRoomDialog(false)
       setSelectedRoom(null)
@@ -658,7 +710,6 @@ export default function HotelAdminPage() {
         amenities: [],
         status: "available",
         floor: 1,
-        price: 0,
         description: "",
       })
       setFormErrors({})
@@ -673,17 +724,17 @@ export default function HotelAdminPage() {
 
     // Check if room is currently occupied
     if (selectedRoom.status === "occupied") {
-      showToast("Error", "Cannot delete occupied room. Please check out the guest first.", "destructive")
+      showToast("Error", "Cannot delete occupied room/bed. Please check out the guest first.", "destructive")
       return
     }
 
     try {
       await simulateAsyncOperation("delete-room")
 
-      setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id))
+      // setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id))
       setShowDeleteRoomDialog(false)
       setSelectedRoom(null)
-      showToast("Success", `Room ${selectedRoom.number} deleted successfully`)
+      showToast("Success", `${getRoomTypeLabel(selectedRoom.type)} ${selectedRoom.number} deleted successfully`)
     } catch (error) {
       handleError(error, "delete room")
     }
@@ -693,10 +744,20 @@ export default function HotelAdminPage() {
     try {
       await simulateAsyncOperation("room-status-change", 500)
 
-      setRooms((prev) => prev.map((room) => (room.id === roomId ? { ...room, status: newStatus } : room)))
+      // setRooms((prev) => prev.map((room) => (room.id === roomId ? { ...room, status: newStatus } : room)))
       showToast("Success", `Room status updated to ${newStatus}`)
     } catch (error) {
       handleError(error, "update room status")
+    }
+  }
+
+  // Handle pricing updates
+  const handlePricingUpdate = async () => {
+    try {
+      await simulateAsyncOperation("update-pricing", 500)
+      showToast("Success", "Room rates updated successfully")
+    } catch (error) {
+      handleError(error, "update pricing")
     }
   }
 
@@ -717,7 +778,6 @@ export default function HotelAdminPage() {
       amenities: [],
       status: "available",
       floor: 1,
-      price: 0,
       description: "",
     })
     setFormErrors({})
@@ -730,7 +790,7 @@ export default function HotelAdminPage() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2">
             <Mountain className="h-6 w-6 text-emerald-600" />
-            <span className="text-xl font-semibold">Hindukush Sarai</span>
+            <span className="text-xl font-semibold">Hindukush Heights</span>
           </div>
           <div className="text-sm text-muted-foreground mt-1">Hotel Admin Panel</div>
         </div>
@@ -767,7 +827,7 @@ export default function HotelAdminPage() {
               >
                 <Inbox className="h-5 w-5" />
                 <span>Inquiries</span>
-                <Badge className="ml-auto bg-red-500">{inquiries.filter((i) => i.status === "new").length}</Badge>
+                <Badge className="ml-auto bg-red-500">{inquiries?.filter((i) => i.status === "new").length}</Badge>
               </button>
             </li>
             <li>
@@ -812,10 +872,10 @@ export default function HotelAdminPage() {
             </Avatar>
             <div>
               <div className="font-medium">Hotel Manager</div>
-              <div className="text-xs text-muted-foreground">manager@hindukushsarai.com</div>
+              <div className="text-xs text-muted-foreground">manager@hindukushheights.com</div>
             </div>
           </div>
-          <Button variant="outline" className="w-full mt-4 gap-2">
+          <Button variant="outline" className="w-full mt-4 gap-2 bg-transparent">
             <LogOut className="h-4 w-4" />
             <span>Log Out</span>
           </Button>
@@ -867,7 +927,7 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{bookings.length}</div>
+                    <div className="text-3xl font-bold">{bookings?.length}</div>
                     <p className="text-xs text-muted-foreground mt-1">+2 from yesterday</p>
                   </CardContent>
                 </Card>
@@ -885,7 +945,7 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">New Inquiries</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{inquiries.filter((i) => i.status === "new").length}</div>
+                    <div className="text-3xl font-bold">{inquiries?.filter((i) => i.status === "new").length}</div>
                     <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
                   </CardContent>
                 </Card>
@@ -894,7 +954,7 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Revenue (This Month)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">$3,240</div>
+                    <div className="text-3xl font-bold">Rs 324,000</div>
                     <p className="text-xs text-emerald-500 mt-1">+12% from last month</p>
                   </CardContent>
                 </Card>
@@ -908,7 +968,7 @@ export default function HotelAdminPage() {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {bookings.slice(0, 5).map((booking) => (
+                      {bookings?.slice(0, 5).map((booking) => (
                         <div key={booking.id} className="flex items-center justify-between">
                           <div>
                             <div className="font-medium">{booking.guestName}</div>
@@ -937,7 +997,11 @@ export default function HotelAdminPage() {
                     </div>
                   </CardContent>
                   <CardFooter>
-                    <Button variant="outline" className="w-full" onClick={() => setActiveTab("bookings")}>
+                    <Button
+                      variant="outline"
+                      className="w-full bg-transparent"
+                      onClick={() => setActiveTab("bookings")}
+                    >
                       View All Bookings
                     </Button>
                   </CardFooter>
@@ -946,14 +1010,14 @@ export default function HotelAdminPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Room Availability</CardTitle>
-                    <CardDescription>Current room status</CardDescription>
+                    <CardDescription>Current accommodation status</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {Object.entries(roomAvailability).map(([type, data]) => (
                         <div key={type} className="flex items-center justify-between">
                           <div>
-                            <div className="font-medium">{type.charAt(0).toUpperCase() + type.slice(1)} Room</div>
+                            <div className="font-medium">{getRoomTypeLabel(type)}</div>
                             <div className="text-sm text-muted-foreground">
                               {data.available} of {data.total} available
                             </div>
@@ -971,7 +1035,7 @@ export default function HotelAdminPage() {
                   <CardFooter>
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full bg-transparent"
                       onClick={() => {
                         setActiveTab("rooms")
                         setShowRoomManagement(true)
@@ -995,15 +1059,15 @@ export default function HotelAdminPage() {
                         <Clock className="h-5 w-5" />
                       </div>
                       <div>
-                        <div className="font-medium">Check-in: Ahmed Khan (HKS-123456)</div>
+                        <div className="font-medium">Check-in: Ahmed Khan (HKH-123456)</div>
                         <div className="text-sm text-muted-foreground">Deluxe Room - 2 guests - 2:00 PM</div>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="ml-auto"
+                        className="ml-auto bg-transparent"
                         onClick={() => {
-                          const booking = bookings.find((b) => b.id === "HKS-123456")
+                          const booking = bookings?.find((b) => b.id === "HKH-123456")
                           if (booking) {
                             setSelectedBooking(booking)
                             setActiveTab("bookings")
@@ -1018,15 +1082,15 @@ export default function HotelAdminPage() {
                         <Clock className="h-5 w-5" />
                       </div>
                       <div>
-                        <div className="font-medium">Check-out: Michael Brown (HKS-345678)</div>
-                        <div className="text-sm text-muted-foreground">Standard Room - 1 guest - 12:00 PM</div>
+                        <div className="font-medium">Check-out: Michael Brown (HKH-345678)</div>
+                        <div className="text-sm text-muted-foreground">Budget Single Room - 1 guest - 12:00 PM</div>
                       </div>
                       <Button
                         size="sm"
                         variant="outline"
-                        className="ml-auto"
+                        className="ml-auto bg-transparent"
                         onClick={() => {
-                          const booking = bookings.find((b) => b.id === "HKS-345678")
+                          const booking = bookings?.find((b) => b.id === "HKH-345678")
                           if (booking) {
                             setSelectedBooking(booking)
                             setActiveTab("bookings")
@@ -1044,7 +1108,7 @@ export default function HotelAdminPage() {
                         <div className="font-medium">NGO Meeting: UNDP Pakistan</div>
                         <div className="text-sm text-muted-foreground">Conference Room - 10 attendees - 3:00 PM</div>
                       </div>
-                      <Button size="sm" variant="outline" className="ml-auto">
+                      <Button size="sm" variant="outline" className="ml-auto bg-transparent">
                         View Details
                       </Button>
                     </div>
@@ -1088,7 +1152,7 @@ export default function HotelAdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredBookings.map((booking) => (
+                          {filteredBookings?.map((booking) => (
                             <tr key={booking.id} className="border-b hover:bg-muted/50">
                               <td className="p-4 font-medium">{booking.id}</td>
                               <td className="p-4">{booking.guestName}</td>
@@ -1109,11 +1173,6 @@ export default function HotelAdminPage() {
                                   }
                                 >
                                   {booking.status}
-                                </Badge>
-                              </td>
-                              <td className="p-4">
-                                <Badge className={booking.paymentStatus === "paid" ? "bg-emerald-500" : "bg-amber-500"}>
-                                  {booking.paymentStatus}
                                 </Badge>
                               </td>
                               <td className="p-4">
@@ -1144,7 +1203,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {filteredBookings
-                            .filter((b) => b.status === "confirmed")
+                            ?.filter((b) => b.status === "confirmed")
                             .map((booking) => (
                               <tr key={booking.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{booking.id}</td>
@@ -1187,7 +1246,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {filteredBookings
-                            .filter((b) => b.status === "checked-in")
+                            ?.filter((b) => b.status === "checked-in")
                             .map((booking) => (
                               <tr key={booking.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{booking.id}</td>
@@ -1221,7 +1280,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {filteredBookings
-                            .filter((b) => b.status === "checked-out")
+                            ?.filter((b) => b.status === "checked-out")
                             .map((booking) => (
                               <tr key={booking.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{booking.id}</td>
@@ -1229,7 +1288,12 @@ export default function HotelAdminPage() {
                                 <td className="p-4">
                                   {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
                                 </td>
-                                <td className="p-4">${booking.totalAmount}</td>
+                                <td className="p-4">
+                                  {booking.roomType?.includes("Dormitory") || booking.roomType?.includes("Budget")
+                                    ? "Rs"
+                                    : "$"}
+                                  {booking.totalAmount?.toLocaleString()}
+                                </td>
                                 <td className="p-4">
                                   <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
                                     View
@@ -1257,7 +1321,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {filteredBookings
-                            .filter((b) => b.status === "cancelled")
+                            ?.filter((b) => b.status === "cancelled")
                             .map((booking) => (
                               <tr key={booking.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{booking.id}</td>
@@ -1334,7 +1398,7 @@ export default function HotelAdminPage() {
                         <p className="font-medium">{selectedBooking.roomType}</p>
                       </div>
                       <div>
-                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Room Number</h3>
+                        <h3 className="text-sm font-medium text-muted-foreground mb-1">Room/Bed Number</h3>
                         <p className="font-medium">{selectedBooking.roomNumber}</p>
                       </div>
                       <div>
@@ -1351,7 +1415,13 @@ export default function HotelAdminPage() {
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Amount</h3>
-                        <p className="font-medium">${selectedBooking.totalAmount}</p>
+                        <p className="font-medium">
+                          {selectedBooking.roomType?.includes("Dormitory") ||
+                          selectedBooking.roomType?.includes("Budget")
+                            ? "Rs"
+                            : "$"}
+                          {selectedBooking.totalAmount?.toLocaleString()}
+                        </p>
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Payment Status</h3>
@@ -1429,12 +1499,12 @@ export default function HotelAdminPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full bg-transparent"
                       disabled={isLoading}
                       onClick={() => {
                         setEmailSubject(`Booking Confirmation - ${selectedBooking.id}`)
                         setEmailMessage(
-                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Sarai has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.id}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Room: ${selectedBooking.roomType}\n- Total Amount: $${selectedBooking.totalAmount}\n\nWe look forward to welcoming you!\n\nBest regards,\nHindukush Sarai Team`,
+                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Heights Chitral has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.id}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Accommodation: ${selectedBooking.roomType}\n- Total Amount: ${selectedBooking.roomType?.includes("Dormitory") || selectedBooking.roomType?.includes("Budget") ? "Rs" : "$"}${selectedBooking.totalAmount?.toLocaleString()}\n\nWe look forward to welcoming you with traditional mountain hospitality!\n\nBest regards,\nHindukush Heights Chitral Team`,
                         )
                         setShowEmailDialog(true)
                       }}
@@ -1444,7 +1514,7 @@ export default function HotelAdminPage() {
                     </Button>
                     <Button
                       variant="outline"
-                      className="w-full"
+                      className="w-full bg-transparent"
                       disabled={isLoading}
                       onClick={() => {
                         setEditFormData({
@@ -1485,7 +1555,7 @@ export default function HotelAdminPage() {
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="new">
-                    New <Badge className="ml-1 bg-red-500">{inquiries.filter((i) => i.status === "new").length}</Badge>
+                    New <Badge className="ml-1 bg-red-500">{inquiries?.filter((i) => i.status === "new").length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="replied">Replied</TabsTrigger>
                 </TabsList>
@@ -1504,7 +1574,7 @@ export default function HotelAdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {inquiries.map((inquiry) => (
+                          {inquiries?.map((inquiry) => (
                             <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                               <td className="p-4 font-medium">{inquiry.id}</td>
                               <td className="p-4">{inquiry.name}</td>
@@ -1542,7 +1612,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {inquiries
-                            .filter((inquiry) => inquiry.status === "new")
+                            ?.filter((inquiry) => inquiry.status === "new")
                             .map((inquiry) => (
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{inquiry.id}</td>
@@ -1576,7 +1646,7 @@ export default function HotelAdminPage() {
                         </thead>
                         <tbody>
                           {inquiries
-                            .filter((inquiry) => inquiry.status === "replied")
+                            ?.filter((inquiry) => inquiry.status === "replied")
                             .map((inquiry) => (
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{inquiry.id}</td>
@@ -1703,7 +1773,7 @@ export default function HotelAdminPage() {
                 {Object.entries(roomAvailability).map(([type, data]) => (
                   <Card key={type}>
                     <CardHeader>
-                      <CardTitle>{type.charAt(0).toUpperCase() + type.slice(1)} Rooms</CardTitle>
+                      <CardTitle>{getRoomTypeLabel(type)}</CardTitle>
                       <CardDescription>
                         {data.available} of {data.total} available
                       </CardDescription>
@@ -1716,7 +1786,7 @@ export default function HotelAdminPage() {
                         ></div>
                       </div>
                       <div className="grid grid-cols-5 gap-2">
-                        {Array.from({ length: data.total }, (_, i) => (
+                        {Array.from({ length: Math.min(data.total, 10) }, (_, i) => (
                           <div
                             key={i}
                             className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium ${
@@ -1728,11 +1798,20 @@ export default function HotelAdminPage() {
                             {i + 1}
                           </div>
                         ))}
+                        {data.total > 10 && (
+                          <div className="aspect-square rounded-md flex items-center justify-center text-xs font-medium bg-gray-100 text-gray-600">
+                            +{data.total - 10}
+                          </div>
+                        )}
                       </div>
                     </CardContent>
                     <CardFooter>
-                      <Button variant="outline" className="w-full" onClick={() => setShowRoomManagement(true)}>
-                        Manage Rooms
+                      <Button
+                        variant="outline"
+                        className="w-full bg-transparent"
+                        onClick={() => setShowRoomManagement(true)}
+                      >
+                        Manage
                       </Button>
                     </CardFooter>
                   </Card>
@@ -1766,10 +1845,10 @@ export default function HotelAdminPage() {
               </div>
 
               <div className="flex justify-between items-center">
-                <p className="text-muted-foreground">Manage individual rooms, their details, and availability</p>
+                <p className="text-muted-foreground">Manage individual rooms, beds, and their availability</p>
                 <Button onClick={() => setShowAddRoomDialog(true)} disabled={isLoading}>
                   <Plus className="h-4 w-4 mr-2" />
-                  Add New Room
+                  Add New Room/Bed
                 </Button>
               </div>
 
@@ -1778,23 +1857,28 @@ export default function HotelAdminPage() {
                   <table className="w-full">
                     <thead>
                       <tr className="border-b">
-                        <th className="text-left p-4">Room Number</th>
+                        <th className="text-left p-4">Number</th>
                         <th className="text-left p-4">Type</th>
                         <th className="text-left p-4">Capacity</th>
                         <th className="text-left p-4">Floor</th>
-                        <th className="text-left p-4">Price/Night</th>
+                        <th className="text-left p-4">Price</th>
                         <th className="text-left p-4">Status</th>
                         <th className="text-left p-4">Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {rooms.map((room) => (
+                      {rooms?.map((room) => (
                         <tr key={room.id} className="border-b hover:bg-muted/50">
                           <td className="p-4 font-medium">{room.number}</td>
-                          <td className="p-4 capitalize">{room.type}</td>
-                          <td className="p-4">{room.capacity} guests</td>
+                          <td className="p-4">{getRoomTypeLabel(room.type)}</td>
+                          <td className="p-4">
+                            {room.capacity} guest{room.capacity !== 1 ? "s" : ""}
+                          </td>
                           <td className="p-4">Floor {room.floor}</td>
-                          <td className="p-4">${room.price}</td>
+                          <td className="p-4">
+                            {getRoomCurrency(room.type)}
+                            {getRoomPrice(room.type).toLocaleString()}
+                          </td>
                           <td className="p-4">
                             <Select
                               defaultValue={room.status}
@@ -1827,7 +1911,6 @@ export default function HotelAdminPage() {
                                     amenities: room.amenities,
                                     status: room.status,
                                     floor: room.floor,
-                                    price: room.price,
                                     description: room.description,
                                   })
                                   setShowEditRoomDialog(true)
@@ -1858,26 +1941,106 @@ export default function HotelAdminPage() {
               <Card>
                 <CardHeader>
                   <CardTitle>Room Rates & Pricing</CardTitle>
-                  <CardDescription>Manage room types and pricing for all room categories</CardDescription>
+                  <CardDescription>Manage accommodation pricing for all room categories</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="space-y-2">
+                        <Label>Dormitory - Male (per bed)</Label>
+                        <Input
+                          value={`Rs ${roomPricing.dormitory_male.toLocaleString()}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[Rs,\s]/g, "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, dormitory_male: Number(value) }))
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Dormitory - Female (per bed)</Label>
+                        <Input
+                          value={`Rs ${roomPricing.dormitory_female.toLocaleString()}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[Rs,\s]/g, "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, dormitory_female: Number(value) }))
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Budget Room - Single</Label>
+                        <Input
+                          value={`Rs ${roomPricing.budget_single.toLocaleString()}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[Rs,\s]/g, "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, budget_single: Number(value) }))
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Budget Room - Double</Label>
+                        <Input
+                          value={`Rs ${roomPricing.budget_double.toLocaleString()}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/[Rs,\s]/g, "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, budget_double: Number(value) }))
+                            }
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
                         <Label>Standard Room Rate</Label>
-                        <Input defaultValue="$80" />
+                        <Input
+                          value={`$${roomPricing.standard}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace("$", "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, standard: Number(value) }))
+                            }
+                          }}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Deluxe Room Rate</Label>
-                        <Input defaultValue="$120" />
+                        <Input
+                          value={`$${roomPricing.deluxe}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace("$", "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, deluxe: Number(value) }))
+                            }
+                          }}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Family Suite Rate</Label>
-                        <Input defaultValue="$180" />
+                        <Input
+                          value={`$${roomPricing.family}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace("$", "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, family: Number(value) }))
+                            }
+                          }}
+                        />
                       </div>
                       <div className="space-y-2">
                         <Label>Executive Suite Rate</Label>
-                        <Input defaultValue="$220" />
+                        <Input
+                          value={`$${roomPricing.executive}`}
+                          onChange={(e) => {
+                            const value = e.target.value.replace("$", "")
+                            if (!isNaN(Number(value))) {
+                              setRoomPricing((prev) => ({ ...prev, executive: Number(value) }))
+                            }
+                          }}
+                        />
                       </div>
                     </div>
                     <div className="pt-4 border-t">
@@ -1885,37 +2048,75 @@ export default function HotelAdminPage() {
                       <div className="grid gap-4 md:grid-cols-2">
                         <div className="space-y-2">
                           <Label>Peak Season Multiplier (%)</Label>
-                          <Input defaultValue="25" placeholder="e.g., 25 for 25% increase" />
+                          <Input
+                            value={pricingRules.peakSeasonMultiplier}
+                            onChange={(e) => {
+                              const value = Number(e.target.value)
+                              if (!isNaN(value)) {
+                                setPricingRules((prev) => ({ ...prev, peakSeasonMultiplier: value }))
+                              }
+                            }}
+                            placeholder="e.g., 25 for 25% increase"
+                          />
                         </div>
                         <div className="space-y-2">
-                          <Label>Group Discount (5+ rooms) (%)</Label>
-                          <Input defaultValue="10" placeholder="e.g., 10 for 10% discount" />
+                          <Label>Group Discount (5+ rooms/beds) (%)</Label>
+                          <Input
+                            value={pricingRules.groupDiscount}
+                            onChange={(e) => {
+                              const value = Number(e.target.value)
+                              if (!isNaN(value)) {
+                                setPricingRules((prev) => ({ ...prev, groupDiscount: value }))
+                              }
+                            }}
+                            placeholder="e.g., 10 for 10% discount"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>Extended Stay Discount (7+ nights) (%)</Label>
-                          <Input defaultValue="15" placeholder="e.g., 15 for 15% discount" />
+                          <Input
+                            value={pricingRules.extendedStayDiscount}
+                            onChange={(e) => {
+                              const value = Number(e.target.value)
+                              if (!isNaN(value)) {
+                                setPricingRules((prev) => ({ ...prev, extendedStayDiscount: value }))
+                              }
+                            }}
+                            placeholder="e.g., 15 for 15% discount"
+                          />
                         </div>
                         <div className="space-y-2">
                           <Label>Corporate/NGO Discount (%)</Label>
-                          <Input defaultValue="20" placeholder="e.g., 20 for 20% discount" />
+                          <Input
+                            value={pricingRules.corporateDiscount}
+                            onChange={(e) => {
+                              const value = Number(e.target.value)
+                              if (!isNaN(value)) {
+                                setPricingRules((prev) => ({ ...prev, corporateDiscount: value }))
+                              }
+                            }}
+                            placeholder="e.g., 20 for 20% discount"
+                          />
                         </div>
                       </div>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button onClick={() => showToast("Success", "Room rates updated successfully")}>Update Rates</Button>
+                  <Button onClick={handlePricingUpdate}>Update Rates</Button>
                 </CardFooter>
               </Card>
 
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {rooms.map((room) => (
+                {rooms?.map((room) => (
                   <Card key={room.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
                         <div>
-                          <CardTitle>Room {room.number}</CardTitle>
-                          <CardDescription className="capitalize">{room.type} Room</CardDescription>
+                          <CardTitle>
+                            {getRoomTypeLabel(room.type)} {room.number}
+                          </CardTitle>
+                          <CardDescription className="capitalize">{room.type.replace("_", " ")}</CardDescription>
                         </div>
                         <Badge
                           className={
@@ -1936,7 +2137,9 @@ export default function HotelAdminPage() {
                       <div className="space-y-2 text-sm">
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Capacity:</span>
-                          <span>{room.capacity} guests</span>
+                          <span>
+                            {room.capacity} guest{room.capacity !== 1 ? "s" : ""}
+                          </span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Floor:</span>
@@ -1944,7 +2147,11 @@ export default function HotelAdminPage() {
                         </div>
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Price:</span>
-                          <span className="font-medium">${room.price}/night</span>
+                          <span className="font-medium">
+                            {getRoomCurrency(room.type)}
+                            {getRoomPrice(room.type).toLocaleString()}
+                            {room.type.includes("dormitory") ? "/bed" : "/night"}
+                          </span>
                         </div>
                         <div className="mt-3">
                           <span className="text-muted-foreground text-xs">Amenities:</span>
@@ -1987,7 +2194,7 @@ export default function HotelAdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bookings.map((booking) => (
+                      {bookings?.map((booking) => (
                         <tr key={booking.id} className="border-b hover:bg-muted/50">
                           <td className="p-4 font-medium">{booking.guestName}</td>
                           <td className="p-4">{booking.email}</td>
@@ -2026,11 +2233,11 @@ export default function HotelAdminPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="hotel-name">Hotel Name</Label>
-                      <Input id="hotel-name" defaultValue="Hindukush Sarai" />
+                      <Input id="hotel-name" defaultValue="Hindukush Heights Chitral" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="hotel-email">Email</Label>
-                      <Input id="hotel-email" defaultValue="info@hindukushsarai.com" />
+                      <Input id="hotel-email" defaultValue="info@hindukushheights.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="hotel-phone">Phone</Label>
@@ -2075,7 +2282,7 @@ export default function HotelAdminPage() {
           <DialogHeader>
             <DialogTitle>Check In Guest</DialogTitle>
             <DialogDescription>
-              Confirm check-in for {selectedBooking?.guestName} to room {selectedBooking?.roomNumber}
+              Confirm check-in for {selectedBooking?.guestName} to {selectedBooking?.roomNumber}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2085,7 +2292,7 @@ export default function HotelAdminPage() {
                 <div>
                   <p className="font-medium">Ready to check in</p>
                   <p className="text-sm text-muted-foreground">
-                    Guest will be marked as checked-in and room {selectedBooking?.roomNumber} will be occupied
+                    Guest will be marked as checked-in and {selectedBooking?.roomNumber} will be occupied
                   </p>
                 </div>
               </div>
@@ -2109,7 +2316,7 @@ export default function HotelAdminPage() {
           <DialogHeader>
             <DialogTitle>Check Out Guest</DialogTitle>
             <DialogDescription>
-              Confirm check-out for {selectedBooking?.guestName} from room {selectedBooking?.roomNumber}
+              Confirm check-out for {selectedBooking?.guestName} from {selectedBooking?.roomNumber}
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
@@ -2119,7 +2326,7 @@ export default function HotelAdminPage() {
                 <div>
                   <p className="font-medium">Ready to check out</p>
                   <p className="text-sm text-muted-foreground">
-                    Guest will be marked as checked-out and room {selectedBooking?.roomNumber} will be available
+                    Guest will be marked as checked-out and {selectedBooking?.roomNumber} will be available
                   </p>
                 </div>
               </div>
@@ -2213,7 +2420,7 @@ export default function HotelAdminPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-room-number">Room Number</Label>
+                <Label htmlFor="edit-room-number">Room/Bed Number</Label>
                 <Input
                   id="edit-room-number"
                   value={editFormData.roomNumber || ""}
@@ -2237,7 +2444,7 @@ export default function HotelAdminPage() {
             </Button>
             <Button onClick={handleEditBooking} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Save Changes
+              Update Booking
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2253,31 +2460,23 @@ export default function HotelAdminPage() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-md">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="font-medium text-red-800">This action cannot be undone</p>
-                <p className="text-sm text-red-600">The booking will be permanently cancelled</p>
-              </div>
-            </div>
             <div className="space-y-2">
-              <Label htmlFor="cancel-reason">Cancellation Reason</Label>
+              <Label htmlFor="cancel-reason">Reason for Cancellation</Label>
               <Textarea
                 id="cancel-reason"
+                placeholder="Please provide a reason for cancellation"
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                placeholder="Please provide a reason for cancellation"
-                required
               />
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowCancelDialog(false)} disabled={isLoading}>
-              Keep Booking
+              Cancel
             </Button>
             <Button variant="destructive" onClick={handleCancelBooking} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Cancel Booking
+              Confirm Cancellation
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2287,30 +2486,26 @@ export default function HotelAdminPage() {
       <Dialog open={showAddRoomDialog} onOpenChange={setShowAddRoomDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Add New Room</DialogTitle>
-            <DialogDescription>Create a new room with details and amenities</DialogDescription>
+            <DialogTitle>Add New Room/Bed</DialogTitle>
+            <DialogDescription>Fill in the details for the new accommodation</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="add-room-number">Room Number *</Label>
+                <Label htmlFor="room-number">Room/Bed Number</Label>
                 <Input
-                  id="add-room-number"
+                  id="room-number"
                   value={roomFormData.number}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, number: e.target.value }))}
-                  placeholder="e.g., 101"
-                  className={formErrors.number ? "border-red-500" : ""}
+                  placeholder="e.g., 101, Bed 3"
                 />
-                {formErrors.number && <p className="text-sm text-red-500">{formErrors.number}</p>}
+                {formErrors.number && <p className="text-red-500 text-sm">{formErrors.number}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="add-room-type">Room Type *</Label>
-                <Select
-                  value={roomFormData.type}
-                  onValueChange={(value) => setRoomFormData((prev) => ({ ...prev, type: value }))}
-                >
-                  <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select room type" />
+                <Label htmlFor="room-type">Room Type</Label>
+                <Select onValueChange={(value) => setRoomFormData((prev) => ({ ...prev, type: value }))}>
+                  <SelectTrigger id="room-type">
+                    <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
                     {roomTypes.map((type) => (
@@ -2320,91 +2515,53 @@ export default function HotelAdminPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {formErrors.type && <p className="text-sm text-red-500">{formErrors.type}</p>}
+                {formErrors.type && <p className="text-red-500 text-sm">{formErrors.type}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="add-room-capacity">Capacity *</Label>
+                <Label htmlFor="room-capacity">Capacity</Label>
                 <Input
-                  id="add-room-capacity"
                   type="number"
-                  min="1"
-                  max="10"
+                  id="room-capacity"
                   value={roomFormData.capacity}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, capacity: e.target.value }))}
-                  className={formErrors.capacity ? "border-red-500" : ""}
+                  placeholder="Number of guests"
                 />
-                {formErrors.capacity && <p className="text-sm text-red-500">{formErrors.capacity}</p>}
+                {formErrors.capacity && <p className="text-red-500 text-sm">{formErrors.capacity}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="add-room-floor">Floor *</Label>
+                <Label htmlFor="room-floor">Floor</Label>
                 <Input
-                  id="add-room-floor"
                   type="number"
-                  min="1"
-                  max="20"
+                  id="room-floor"
                   value={roomFormData.floor}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, floor: e.target.value }))}
-                  className={formErrors.floor ? "border-red-500" : ""}
+                  placeholder="Floor number"
                 />
-                {formErrors.floor && <p className="text-sm text-red-500">{formErrors.floor}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-room-price">Price per Night ($) *</Label>
-                <Input
-                  id="add-room-price"
-                  type="number"
-                  min="50"
-                  max="2000"
-                  step="0.01"
-                  value={roomFormData.price}
-                  onChange={(e) => setRoomFormData((prev) => ({ ...prev, price: e.target.value }))}
-                  className={formErrors.price ? "border-red-500" : ""}
-                />
-                {formErrors.price && <p className="text-sm text-red-500">{formErrors.price}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="add-room-status">Status</Label>
-                <Select
-                  value={roomFormData.status}
-                  onValueChange={(value) => setRoomFormData((prev) => ({ ...prev, status: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="cleaning">Cleaning</SelectItem>
-                  </SelectContent>
-                </Select>
+                {formErrors.floor && <p className="text-red-500 text-sm">{formErrors.floor}</p>}
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Amenities *</Label>
-              <div
-                className={`grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border rounded-md p-3 ${formErrors.amenities ? "border-red-500" : ""}`}
-              >
+              <Label>Amenities</Label>
+              <div className="grid gap-2 md:grid-cols-3">
                 {availableAmenities.map((amenity) => (
-                  <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={roomFormData.amenities.includes(amenity)}
-                      onChange={() => toggleAmenity(amenity)}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{amenity}</span>
-                  </label>
+                  <Button
+                    key={amenity}
+                    variant={roomFormData.amenities.includes(amenity) ? "default" : "outline"}
+                    onClick={() => toggleAmenity(amenity)}
+                  >
+                    {amenity}
+                  </Button>
                 ))}
               </div>
-              {formErrors.amenities && <p className="text-sm text-red-500">{formErrors.amenities}</p>}
+              {formErrors.amenities && <p className="text-red-500 text-sm">{formErrors.amenities}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="add-room-description">Description</Label>
+              <Label htmlFor="room-description">Description</Label>
               <Textarea
-                id="add-room-description"
+                id="room-description"
                 value={roomFormData.description}
                 onChange={(e) => setRoomFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of the room"
+                placeholder="Additional details about the room/bed"
               />
             </div>
           </div>
@@ -2421,7 +2578,7 @@ export default function HotelAdminPage() {
             </Button>
             <Button onClick={handleAddRoom} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Add Room
+              Add Room/Bed
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2431,30 +2588,29 @@ export default function HotelAdminPage() {
       <Dialog open={showEditRoomDialog} onOpenChange={setShowEditRoomDialog}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Edit Room {selectedRoom?.number}</DialogTitle>
-            <DialogDescription>Update room details and amenities</DialogDescription>
+            <DialogTitle>Edit Room/Bed</DialogTitle>
+            <DialogDescription>Update the details for the accommodation</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <Label htmlFor="edit-room-number">Room Number *</Label>
+                <Label htmlFor="edit-room-number">Room/Bed Number</Label>
                 <Input
                   id="edit-room-number"
                   value={roomFormData.number}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, number: e.target.value }))}
-                  placeholder="e.g., 101"
-                  className={formErrors.number ? "border-red-500" : ""}
+                  placeholder="e.g., 101, Bed 3"
                 />
-                {formErrors.number && <p className="text-sm text-red-500">{formErrors.number}</p>}
+                {formErrors.number && <p className="text-red-500 text-sm">{formErrors.number}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-room-type">Room Type *</Label>
+                <Label htmlFor="edit-room-type">Room Type</Label>
                 <Select
-                  value={roomFormData.type}
+                  defaultValue={roomFormData.type}
                   onValueChange={(value) => setRoomFormData((prev) => ({ ...prev, type: value }))}
                 >
-                  <SelectTrigger className={formErrors.type ? "border-red-500" : ""}>
-                    <SelectValue placeholder="Select room type" />
+                  <SelectTrigger id="edit-room-type">
+                    <SelectValue placeholder="Select a type" />
                   </SelectTrigger>
                   <SelectContent>
                     {roomTypes.map((type) => (
@@ -2464,84 +2620,45 @@ export default function HotelAdminPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {formErrors.type && <p className="text-sm text-red-500">{formErrors.type}</p>}
+                {formErrors.type && <p className="text-red-500 text-sm">{formErrors.type}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-room-capacity">Capacity *</Label>
+                <Label htmlFor="edit-room-capacity">Capacity</Label>
                 <Input
-                  id="edit-room-capacity"
                   type="number"
-                  min="1"
-                  max="10"
+                  id="edit-room-capacity"
                   value={roomFormData.capacity}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, capacity: e.target.value }))}
-                  className={formErrors.capacity ? "border-red-500" : ""}
+                  placeholder="Number of guests"
                 />
-                {formErrors.capacity && <p className="text-sm text-red-500">{formErrors.capacity}</p>}
+                {formErrors.capacity && <p className="text-red-500 text-sm">{formErrors.capacity}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="edit-room-floor">Floor *</Label>
+                <Label htmlFor="edit-room-floor">Floor</Label>
                 <Input
-                  id="edit-room-floor"
                   type="number"
-                  min="1"
-                  max="20"
+                  id="edit-room-floor"
                   value={roomFormData.floor}
                   onChange={(e) => setRoomFormData((prev) => ({ ...prev, floor: e.target.value }))}
-                  className={formErrors.floor ? "border-red-500" : ""}
+                  placeholder="Floor number"
                 />
-                {formErrors.floor && <p className="text-sm text-red-500">{formErrors.floor}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-room-price">Price per Night ($) *</Label>
-                <Input
-                  id="edit-room-price"
-                  type="number"
-                  min="50"
-                  max="2000"
-                  step="0.01"
-                  value={roomFormData.price}
-                  onChange={(e) => setRoomFormData((prev) => ({ ...prev, price: e.target.value }))}
-                  className={formErrors.price ? "border-red-500" : ""}
-                />
-                {formErrors.price && <p className="text-sm text-red-500">{formErrors.price}</p>}
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-room-status">Status</Label>
-                <Select
-                  value={roomFormData.status}
-                  onValueChange={(value) => setRoomFormData((prev) => ({ ...prev, status: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="available">Available</SelectItem>
-                    <SelectItem value="occupied">Occupied</SelectItem>
-                    <SelectItem value="maintenance">Maintenance</SelectItem>
-                    <SelectItem value="cleaning">Cleaning</SelectItem>
-                  </SelectContent>
-                </Select>
+                {formErrors.floor && <p className="text-red-500 text-sm">{formErrors.floor}</p>}
               </div>
             </div>
             <div className="space-y-2">
-              <Label>Amenities *</Label>
-              <div
-                className={`grid grid-cols-2 md:grid-cols-3 gap-2 max-h-32 overflow-y-auto border rounded-md p-3 ${formErrors.amenities ? "border-red-500" : ""}`}
-              >
+              <Label>Amenities</Label>
+              <div className="grid gap-2 md:grid-cols-3">
                 {availableAmenities.map((amenity) => (
-                  <label key={amenity} className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={roomFormData.amenities.includes(amenity)}
-                      onChange={() => toggleAmenity(amenity)}
-                      className="rounded"
-                    />
-                    <span className="text-sm">{amenity}</span>
-                  </label>
+                  <Button
+                    key={amenity}
+                    variant={roomFormData.amenities.includes(amenity) ? "default" : "outline"}
+                    onClick={() => toggleAmenity(amenity)}
+                  >
+                    {amenity}
+                  </Button>
                 ))}
               </div>
-              {formErrors.amenities && <p className="text-sm text-red-500">{formErrors.amenities}</p>}
+              {formErrors.amenities && <p className="text-red-500 text-sm">{formErrors.amenities}</p>}
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-room-description">Description</Label>
@@ -2549,7 +2666,7 @@ export default function HotelAdminPage() {
                 id="edit-room-description"
                 value={roomFormData.description}
                 onChange={(e) => setRoomFormData((prev) => ({ ...prev, description: e.target.value }))}
-                placeholder="Brief description of the room"
+                placeholder="Additional details about the room/bed"
               />
             </div>
           </div>
@@ -2566,7 +2683,7 @@ export default function HotelAdminPage() {
             </Button>
             <Button onClick={handleEditRoom} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Save Changes
+              Update Room/Bed
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2576,42 +2693,31 @@ export default function HotelAdminPage() {
       <Dialog open={showDeleteRoomDialog} onOpenChange={setShowDeleteRoomDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Room {selectedRoom?.number}</DialogTitle>
+            <DialogTitle>Delete Room/Bed</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this room? This action cannot be undone.
+              Are you sure you want to delete {getRoomTypeLabel(selectedRoom?.type)} {selectedRoom?.number}?
             </DialogDescription>
           </DialogHeader>
           <div className="py-4">
-            <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-md">
-              <AlertTriangle className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="font-medium text-red-800">This action is permanent</p>
-                <p className="text-sm text-red-600">
-                  Room {selectedRoom?.number} and all its data will be permanently removed
-                </p>
-              </div>
-            </div>
-            {selectedRoom?.status === "occupied" && (
-              <div className="flex items-center gap-2 p-4 bg-amber-50 border border-amber-200 rounded-md mt-3">
-                <AlertTriangle className="h-5 w-5 text-amber-600" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 p-4 bg-red-50 rounded-md">
+                <Trash2 className="h-5 w-5 text-red-600" />
                 <div>
-                  <p className="font-medium text-amber-800">Cannot delete occupied room</p>
-                  <p className="text-sm text-amber-600">Please check out the guest first before deleting this room</p>
+                  <p className="font-medium">Confirm deletion</p>
+                  <p className="text-sm text-muted-foreground">
+                    This action cannot be undone. All associated data will be permanently removed.
+                  </p>
                 </div>
               </div>
-            )}
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowDeleteRoomDialog(false)} disabled={isLoading}>
               Cancel
             </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteRoom}
-              disabled={selectedRoom?.status === "occupied" || isLoading}
-            >
+            <Button variant="destructive" onClick={handleDeleteRoom} disabled={isLoading}>
               {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-              Delete Room
+              Confirm Delete
             </Button>
           </DialogFooter>
         </DialogContent>
