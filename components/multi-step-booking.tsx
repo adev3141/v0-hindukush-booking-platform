@@ -15,132 +15,172 @@ import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
 interface BookingData {
-  // Guest Information
   firstName: string
   lastName: string
   email: string
   phone: string
   nationality: string
-
-  // Booking Details
-  checkIn: Date | undefined
-  checkOut: Date | undefined
+  checkIn: string
+  checkOut: string
   roomType: string
   guests: number
-
-  // Special Requests
   specialRequests: string
-
-  // Emergency Contact
-  emergencyName: string
-  emergencyPhone: string
+  purposeOfVisit: string
 }
-
-const initialBookingData: BookingData = {
-  firstName: "",
-  lastName: "",
-  email: "",
-  phone: "",
-  nationality: "",
-  checkIn: undefined,
-  checkOut: undefined,
-  roomType: "",
-  guests: 1,
-  specialRequests: "",
-  emergencyName: "",
-  emergencyPhone: "",
-}
-
-const roomTypes = [
-  { value: "dormitory", label: "Dormitory Bed", price: 800 },
-  { value: "standard", label: "Standard Room", price: 2500 },
-  { value: "deluxe", label: "Deluxe Room", price: 4000 },
-  { value: "suite", label: "Heritage Suite", price: 6500 },
-]
 
 export function MultiStepBooking() {
   const [currentStep, setCurrentStep] = useState(1)
-  const [bookingData, setBookingData] = useState<BookingData>(initialBookingData)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [checkInDate, setCheckInDate] = useState<Date>()
+  const [checkOutDate, setCheckOutDate] = useState<Date>()
   const { toast } = useToast()
 
-  const totalSteps = 4
+  const [bookingData, setBookingData] = useState<BookingData>({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    nationality: "",
+    checkIn: "",
+    checkOut: "",
+    roomType: "",
+    guests: 1,
+    specialRequests: "",
+    purposeOfVisit: "",
+  })
 
-  const updateBookingData = (field: keyof BookingData, value: any) => {
+  const updateBookingData = (field: keyof BookingData, value: string | number) => {
     setBookingData((prev) => ({ ...prev, [field]: value }))
   }
 
   const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
+    if (validateCurrentStep()) {
+      setCurrentStep((prev) => Math.min(prev + 1, 4))
     }
   }
 
   const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
+    setCurrentStep((prev) => Math.max(prev - 1, 1))
+  }
+
+  const validateCurrentStep = () => {
+    switch (currentStep) {
+      case 1:
+        if (!bookingData.firstName || !bookingData.lastName || !bookingData.email || !bookingData.phone) {
+          toast({
+            title: "Missing Information",
+            description: "Please fill in all required fields.",
+            variant: "destructive",
+          })
+          return false
+        }
+        return true
+      case 2:
+        if (!checkInDate || !checkOutDate || !bookingData.roomType) {
+          toast({
+            title: "Missing Information",
+            description: "Please select check-in/check-out dates and room type.",
+            variant: "destructive",
+          })
+          return false
+        }
+        return true
+      case 3:
+        return true
+      default:
+        return true
     }
   }
 
-  const calculateNights = () => {
-    if (bookingData.checkIn && bookingData.checkOut) {
-      const diffTime = Math.abs(bookingData.checkOut.getTime() - bookingData.checkIn.getTime())
-      return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+  const handleDateSelect = (type: "checkIn" | "checkOut", date: Date | undefined) => {
+    if (date) {
+      const dateString = format(date, "yyyy-MM-dd")
+      if (type === "checkIn") {
+        setCheckInDate(date)
+        updateBookingData("checkIn", dateString)
+      } else {
+        setCheckOutDate(date)
+        updateBookingData("checkOut", dateString)
+      }
     }
-    return 0
   }
 
   const calculateTotal = () => {
-    const selectedRoom = roomTypes.find((room) => room.value === bookingData.roomType)
-    const nights = calculateNights()
-    return selectedRoom ? selectedRoom.price * nights : 0
-  }
-
-  const validateStep = (step: number) => {
-    switch (step) {
-      case 1:
-        return bookingData.firstName && bookingData.lastName && bookingData.email && bookingData.phone
-      case 2:
-        return bookingData.checkIn && bookingData.checkOut && bookingData.roomType
-      case 3:
-        return true // Special requests are optional
-      case 4:
-        return bookingData.emergencyName && bookingData.emergencyPhone
-      default:
-        return false
+    if (!checkInDate || !checkOutDate) return 0
+    const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+    const roomPrices: { [key: string]: number } = {
+      "Deluxe Room": 8000,
+      "Standard Room": 6000,
+      "Budget Room": 4000,
+      "Family Suite": 12000,
     }
+    const basePrice = roomPrices[bookingData.roomType] || 6000
+    return basePrice * nights
   }
 
   const handleSubmit = async () => {
+    console.log("🚀 Starting booking submission...")
     setIsSubmitting(true)
 
     try {
+      const totalAmount = calculateTotal()
+      const nights =
+        checkInDate && checkOutDate
+          ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+          : 1
+
+      const submissionData = {
+        ...bookingData,
+        totalAmount,
+        nights,
+      }
+
+      console.log("📤 Submitting booking data:", submissionData)
+
       const response = await fetch("/api/bookings", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          ...bookingData,
-          totalAmount: calculateTotal(),
-          nights: calculateNights(),
-        }),
+        body: JSON.stringify(submissionData),
       })
 
-      if (response.ok) {
+      console.log("📡 Response status:", response.status)
+      console.log("📡 Response headers:", Object.fromEntries(response.headers.entries()))
+
+      const responseText = await response.text()
+      console.log("📡 Raw response text:", responseText)
+
+      let result
+      try {
+        result = JSON.parse(responseText)
+        console.log("📡 Parsed response:", result)
+      } catch (parseError) {
+        console.error("❌ Failed to parse response:", parseError)
+        throw new Error("Invalid response from server")
+      }
+
+      if (!response.ok) {
+        console.error("❌ Booking failed:", result)
+        throw new Error(result.details || result.error || "Booking failed")
+      }
+
+      if (result.success) {
+        console.log("✅ Booking successful:", result)
         toast({
           title: "Booking Confirmed!",
-          description: "Your reservation has been successfully submitted. We'll contact you shortly.",
+          description: `Your booking reference is ${result.booking.booking_reference}`,
         })
-        setBookingData(initialBookingData)
-        setCurrentStep(1)
+        setCurrentStep(5) // Success step
       } else {
-        throw new Error("Booking failed")
+        console.error("❌ Booking failed:", result)
+        throw new Error(result.error || "Booking failed")
       }
     } catch (error) {
+      console.error("❌ Booking submission error:", error)
       toast({
         title: "Booking Failed",
-        description: "There was an error processing your booking. Please try again.",
+        description: error instanceof Error ? error.message : "There was an error processing your booking",
         variant: "destructive",
       })
     } finally {
@@ -174,13 +214,13 @@ export function MultiStepBooking() {
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email Address *</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
                 value={bookingData.email}
                 onChange={(e) => updateBookingData("email", e.target.value)}
-                placeholder="Enter your email address"
+                placeholder="Enter your email"
               />
             </div>
             <div>
@@ -216,18 +256,18 @@ export function MultiStepBooking() {
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !bookingData.checkIn && "text-muted-foreground",
+                        !checkInDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {bookingData.checkIn ? format(bookingData.checkIn, "PPP") : "Select date"}
+                      {checkInDate ? format(checkInDate, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={bookingData.checkIn}
-                      onSelect={(date) => updateBookingData("checkIn", date)}
+                      selected={checkInDate}
+                      onSelect={(date) => handleDateSelect("checkIn", date)}
                       disabled={(date) => date < new Date()}
                       initialFocus
                     />
@@ -242,19 +282,19 @@ export function MultiStepBooking() {
                       variant="outline"
                       className={cn(
                         "w-full justify-start text-left font-normal",
-                        !bookingData.checkOut && "text-muted-foreground",
+                        !checkOutDate && "text-muted-foreground",
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {bookingData.checkOut ? format(bookingData.checkOut, "PPP") : "Select date"}
+                      {checkOutDate ? format(checkOutDate, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
                     <Calendar
                       mode="single"
-                      selected={bookingData.checkOut}
-                      onSelect={(date) => updateBookingData("checkOut", date)}
-                      disabled={(date) => date <= (bookingData.checkIn || new Date())}
+                      selected={checkOutDate}
+                      onSelect={(date) => handleDateSelect("checkOut", date)}
+                      disabled={(date) => date <= (checkInDate || new Date())}
                       initialFocus
                     />
                   </PopoverContent>
@@ -268,11 +308,10 @@ export function MultiStepBooking() {
                   <SelectValue placeholder="Select room type" />
                 </SelectTrigger>
                 <SelectContent>
-                  {roomTypes.map((room) => (
-                    <SelectItem key={room.value} value={room.value}>
-                      {room.label} - PKR {room.price}/night
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="Budget Room">Budget Room - PKR 4,000/night</SelectItem>
+                  <SelectItem value="Standard Room">Standard Room - PKR 6,000/night</SelectItem>
+                  <SelectItem value="Deluxe Room">Deluxe Room - PKR 8,000/night</SelectItem>
+                  <SelectItem value="Family Suite">Family Suite - PKR 12,000/night</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -286,19 +325,19 @@ export function MultiStepBooking() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1, 2, 3, 4, 5, 6].map((num) => (
-                    <SelectItem key={num} value={num.toString()}>
-                      {num} {num === 1 ? "Guest" : "Guests"}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="1">1 Guest</SelectItem>
+                  <SelectItem value="2">2 Guests</SelectItem>
+                  <SelectItem value="3">3 Guests</SelectItem>
+                  <SelectItem value="4">4 Guests</SelectItem>
+                  <SelectItem value="5">5+ Guests</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            {bookingData.checkIn && bookingData.checkOut && bookingData.roomType && (
+            {checkInDate && checkOutDate && bookingData.roomType && (
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-semibold mb-2">Booking Summary</h4>
-                <p>Nights: {calculateNights()}</p>
-                <p>Room: {roomTypes.find((r) => r.value === bookingData.roomType)?.label}</p>
+                <p>Nights: {Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))}</p>
+                <p>Room: {bookingData.roomType}</p>
                 <p className="font-semibold">Total: PKR {calculateTotal().toLocaleString()}</p>
               </div>
             )}
@@ -318,6 +357,25 @@ export function MultiStepBooking() {
                 rows={4}
               />
             </div>
+            <div>
+              <Label htmlFor="purposeOfVisit">Purpose of Visit</Label>
+              <Select
+                value={bookingData.purposeOfVisit}
+                onValueChange={(value) => updateBookingData("purposeOfVisit", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select purpose of visit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Tourism">Tourism</SelectItem>
+                  <SelectItem value="Business">Business</SelectItem>
+                  <SelectItem value="Adventure">Adventure/Trekking</SelectItem>
+                  <SelectItem value="Photography">Photography</SelectItem>
+                  <SelectItem value="Research">Research</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold mb-2">What's Included</h4>
               <ul className="text-sm space-y-1">
@@ -332,55 +390,78 @@ export function MultiStepBooking() {
         )
 
       case 4:
+        const total = calculateTotal()
+        const nights =
+          checkInDate && checkOutDate
+            ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+            : 0
+
         return (
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="emergencyName">Emergency Contact Name *</Label>
-              <Input
-                id="emergencyName"
-                value={bookingData.emergencyName}
-                onChange={(e) => updateBookingData("emergencyName", e.target.value)}
-                placeholder="Emergency contact full name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="emergencyPhone">Emergency Contact Phone *</Label>
-              <Input
-                id="emergencyPhone"
-                value={bookingData.emergencyPhone}
-                onChange={(e) => updateBookingData("emergencyPhone", e.target.value)}
-                placeholder="Emergency contact phone number"
-              />
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <h4 className="font-semibold mb-2">Final Booking Summary</h4>
-              <div className="space-y-1 text-sm">
-                <p>
-                  <strong>Guest:</strong> {bookingData.firstName} {bookingData.lastName}
-                </p>
-                <p>
-                  <strong>Email:</strong> {bookingData.email}
-                </p>
-                <p>
-                  <strong>Check-in:</strong> {bookingData.checkIn ? format(bookingData.checkIn, "PPP") : ""}
-                </p>
-                <p>
-                  <strong>Check-out:</strong> {bookingData.checkOut ? format(bookingData.checkOut, "PPP") : ""}
-                </p>
-                <p>
-                  <strong>Room:</strong> {roomTypes.find((r) => r.value === bookingData.roomType)?.label}
-                </p>
-                <p>
-                  <strong>Guests:</strong> {bookingData.guests}
-                </p>
-                <p>
-                  <strong>Nights:</strong> {calculateNights()}
-                </p>
-                <p className="text-lg font-semibold">
-                  <strong>Total Amount:</strong> PKR {calculateTotal().toLocaleString()}
-                </p>
+          <div className="space-y-6">
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="font-semibold mb-4">Booking Summary</h3>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span>Guest:</span>
+                  <span>
+                    {bookingData.firstName} {bookingData.lastName}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Email:</span>
+                  <span>{bookingData.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Phone:</span>
+                  <span>{bookingData.phone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Check-in:</span>
+                  <span>{checkInDate ? format(checkInDate, "PPP") : "Not selected"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Check-out:</span>
+                  <span>{checkOutDate ? format(checkOutDate, "PPP") : "Not selected"}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Room Type:</span>
+                  <span>{bookingData.roomType}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Guests:</span>
+                  <span>{bookingData.guests}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Nights:</span>
+                  <span>{nights}</span>
+                </div>
+                {bookingData.purposeOfVisit && (
+                  <div className="flex justify-between">
+                    <span>Purpose:</span>
+                    <span>{bookingData.purposeOfVisit}</span>
+                  </div>
+                )}
+                <div className="flex justify-between font-semibold text-lg border-t pt-2">
+                  <span>Total:</span>
+                  <span>PKR {total.toLocaleString()}</span>
+                </div>
               </div>
             </div>
+            <div className="text-sm text-gray-600">
+              <p>By confirming this booking, you agree to our terms and conditions.</p>
+            </div>
+          </div>
+        )
+
+      case 5:
+        return (
+          <div className="text-center space-y-4">
+            <div className="text-green-600 text-6xl">✓</div>
+            <h3 className="text-2xl font-bold text-green-600">Booking Confirmed!</h3>
+            <p>Thank you for your booking. You will receive a confirmation email shortly.</p>
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Make Another Booking
+            </Button>
           </div>
         )
 
@@ -389,44 +470,63 @@ export function MultiStepBooking() {
     }
   }
 
+  const getStepTitle = () => {
+    switch (currentStep) {
+      case 1:
+        return "Personal Information"
+      case 2:
+        return "Booking Details"
+      case 3:
+        return "Additional Information"
+      case 4:
+        return "Review & Confirm"
+      case 5:
+        return "Booking Confirmed"
+      default:
+        return ""
+    }
+  }
+
+  if (currentStep === 5) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardContent className="p-8">{renderStep()}</CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className="w-full max-w-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Book Your Stay</CardTitle>
-        <CardDescription>
-          Step {currentStep} of {totalSteps}:{" "}
-          {currentStep === 1
-            ? "Personal Information"
-            : currentStep === 2
-              ? "Booking Details"
-              : currentStep === 3
-                ? "Special Requests"
-                : "Review & Confirm"}
-        </CardDescription>
+        <CardTitle>{getStepTitle()}</CardTitle>
+        <CardDescription>Step {currentStep} of 4</CardDescription>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+            style={{ width: `${(currentStep / 4) * 100}%` }}
           />
         </div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-6">
         {renderStep()}
-
-        <div className="flex justify-between mt-6">
-          <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
-            <ChevronLeft className="w-4 h-4 mr-2" />
+        <div className="flex justify-between">
+          <Button
+            variant="outline"
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            className="flex items-center gap-2 bg-transparent"
+          >
+            <ChevronLeft className="h-4 w-4" />
             Previous
           </Button>
-
-          {currentStep < totalSteps ? (
-            <Button onClick={nextStep} disabled={!validateStep(currentStep)}>
+          {currentStep < 4 ? (
+            <Button onClick={nextStep} className="flex items-center gap-2">
               Next
-              <ChevronRight className="w-4 h-4 ml-2" />
+              <ChevronRight className="h-4 w-4" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={!validateStep(currentStep) || isSubmitting}>
-              {isSubmitting ? "Submitting..." : "Confirm Booking"}
+            <Button onClick={handleSubmit} disabled={isSubmitting} className="flex items-center gap-2">
+              {isSubmitting ? "Processing..." : "Confirm Booking"}
             </Button>
           )}
         </div>

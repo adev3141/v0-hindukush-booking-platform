@@ -7,9 +7,9 @@ import { Toaster } from "@/components/ui/toaster"
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Hindukush Heights Chitral - Heritage Hotel Booking",
+  title: "Hindukush Sarai - Mountain Lodge Booking",
   description:
-    "Experience authentic mountain hospitality in Chitral. From budget dormitories to luxury suites, we welcome every traveler with warmth and tradition.",
+    "Book your stay at Hindukush Sarai, a traditional mountain lodge in the heart of Pakistan's northern areas.",
     generator: 'v0.dev'
 }
 

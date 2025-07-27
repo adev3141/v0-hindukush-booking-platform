@@ -48,130 +48,7 @@ import { useBookings } from "@/hooks/use-bookings"
 import { useInquiries } from "@/hooks/use-inquiries"
 import { useRooms } from "@/hooks/use-rooms"
 
-// Mock data for bookings
-const initialBookings = [
-  {
-    id: "HKH-123456",
-    guestName: "Ahmed Khan",
-    checkIn: new Date(2023, 6, 15),
-    checkOut: new Date(2023, 6, 18),
-    roomType: "Deluxe Room",
-    guests: 2,
-    status: "confirmed",
-    totalAmount: 360,
-    paymentStatus: "paid",
-    email: "ahmed.khan@example.com",
-    phone: "+92 300 1234567",
-    roomNumber: "201",
-    specialRequests: "Late check-in requested",
-  },
-  {
-    id: "HKH-234567",
-    guestName: "Sarah Johnson",
-    checkIn: new Date(2023, 6, 20),
-    checkOut: new Date(2023, 6, 25),
-    roomType: "Family Suite",
-    guests: 4,
-    status: "confirmed",
-    totalAmount: 900,
-    paymentStatus: "pending",
-    email: "sarah.j@example.com",
-    phone: "+92 321 9876543",
-    roomNumber: "301",
-    specialRequests: "Ground floor room preferred",
-  },
-  {
-    id: "HKH-345678",
-    guestName: "Michael Brown",
-    checkIn: new Date(2023, 6, 10),
-    checkOut: new Date(2023, 6, 12),
-    roomType: "Budget Room - Single",
-    guests: 1,
-    status: "checked-in",
-    totalAmount: 12000,
-    paymentStatus: "paid",
-    email: "michael.b@example.com",
-    phone: "+92 333 4567890",
-    roomNumber: "101",
-    specialRequests: "",
-  },
-  {
-    id: "HKH-456789",
-    guestName: "Emma Wilson",
-    checkIn: new Date(2023, 6, 5),
-    checkOut: new Date(2023, 6, 10),
-    roomType: "Executive Suite",
-    guests: 2,
-    status: "checked-out",
-    totalAmount: 1100,
-    paymentStatus: "paid",
-    email: "emma.w@example.com",
-    phone: "+92 345 6789012",
-    roomNumber: "401",
-    specialRequests: "Airport pickup arranged",
-  },
-  {
-    id: "HKH-567890",
-    guestName: "Ali Hassan",
-    checkIn: new Date(2023, 6, 25),
-    checkOut: new Date(2023, 6, 30),
-    roomType: "Dormitory - Male",
-    guests: 1,
-    status: "confirmed",
-    totalAmount: 2000,
-    paymentStatus: "pending",
-    email: "ali.h@example.com",
-    phone: "+92 312 3456789",
-    roomNumber: "Bed 5",
-    specialRequests: "Vegetarian meals only",
-  },
-]
-
-// Mock data for inquiries
-const initialInquiries = [
-  {
-    id: "INQ-123",
-    name: "Fatima Ahmed",
-    email: "fatima.a@example.com",
-    phone: "+92 321 1234567",
-    date: new Date(2023, 6, 5),
-    message: "I'm interested in booking a female dormitory bed for 3 nights in August. Do you have availability?",
-    status: "new",
-    reply: "",
-  },
-  {
-    id: "INQ-124",
-    name: "John Smith",
-    email: "john.s@example.com",
-    phone: "+92 300 9876543",
-    date: new Date(2023, 6, 4),
-    message: "Do you offer airport pickup services? We'll be arriving at Chitral Airport on July 20.",
-    status: "replied",
-    reply: "Yes, we offer airport pickup services for Rs 1,500. Please confirm your flight details.",
-  },
-  {
-    id: "INQ-125",
-    name: "Ayesha Khan",
-    email: "ayesha.k@example.com",
-    phone: "+92 333 5678901",
-    date: new Date(2023, 6, 3),
-    message: "We're a group of 10 backpackers. Do you offer special rates for groups booking dormitory beds?",
-    status: "new",
-    reply: "",
-  },
-  {
-    id: "INQ-126",
-    name: "Robert Chen",
-    email: "robert.c@example.com",
-    phone: "+92 345 2345678",
-    date: new Date(2023, 6, 2),
-    message: "Is it possible to arrange a guided tour to Kalash Valley from your hotel?",
-    status: "replied",
-    reply: "Yes, we can arrange guided tours to Kalash Valley. The cost is Rs 5,000 per person for a full day tour.",
-  },
-]
-
-// Mock data for room availability - updated with new room types
+// Room availability data - this should come from the database
 const roomAvailability = {
   dormitory_male: { total: 12, available: 8 },
   dormitory_female: { total: 8, available: 6 },
@@ -189,13 +66,8 @@ export default function HotelAdminPage() {
   const [selectedBooking, setSelectedBooking] = useState(null)
   const [selectedInquiry, setSelectedInquiry] = useState(null)
   const [searchQuery, setSearchQuery] = useState("")
-  // Replace this section at the top of the component:
-  // const [bookings, setBookings] = useState(initialBookings)
-  // const [inquiries, setInquiries] = useState(initialInquiries)
-  // const [rooms, setRooms] = useState(initialRooms)
 
-  // With this:
-  // Inside the component:
+  // Use the hooks to get real data from Supabase
   const { bookings, loading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useBookings()
   const { inquiries, loading: inquiriesLoading, replyToInquiry } = useInquiries()
   const { rooms, loading: roomsLoading, createRoom, updateRoom, deleteRoom } = useRooms()
@@ -236,72 +108,6 @@ export default function HotelAdminPage() {
     extendedStayDiscount: 15,
     corporateDiscount: 20,
   })
-
-  // Mock data for individual rooms - updated with new room types
-  const initialRooms = [
-    {
-      id: "dorm-male-bed-1",
-      number: "Bed 1",
-      type: "dormitory_male",
-      capacity: 1,
-      amenities: ["Shared accommodation", "Clean washrooms", "WiFi", "Lockers"],
-      status: "available",
-      floor: 1,
-      description: "Male dormitory bed with shared facilities",
-    },
-    {
-      id: "dorm-female-bed-1",
-      number: "Bed 1",
-      type: "dormitory_female",
-      capacity: 1,
-      amenities: ["Female-only accommodation", "Clean washrooms", "WiFi", "Secure lockers"],
-      status: "available",
-      floor: 1,
-      description: "Female dormitory bed with shared facilities",
-    },
-    {
-      id: "budget-single-101",
-      number: "101",
-      type: "budget_single",
-      capacity: 1,
-      amenities: ["Private room", "Attached bathroom", "WiFi", "Mountain view"],
-      status: "occupied",
-      floor: 1,
-      description: "Budget single room with attached bathroom",
-    },
-    {
-      id: "budget-double-201",
-      number: "201",
-      type: "budget_double",
-      capacity: 2,
-      amenities: ["Private room for 2", "Attached bathroom", "WiFi", "Garden view"],
-      status: "available",
-      floor: 2,
-      description: "Budget double room with attached bathroom",
-    },
-    {
-      id: "room-301",
-      number: "301",
-      type: "standard",
-      capacity: 2,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom"],
-      status: "available",
-      floor: 3,
-      description: "Comfortable standard room with garden view",
-    },
-    {
-      id: "room-401",
-      number: "401",
-      type: "executive",
-      capacity: 2,
-      amenities: ["WiFi", "AC", "TV", "Private Bathroom", "Mini Bar", "Balcony", "Work Desk", "Premium Bedding"],
-      status: "available",
-      floor: 4,
-      description: "Luxury executive suite with premium amenities",
-    },
-  ]
-
-  // const [rooms, setRooms] = useState(initialRooms)
 
   const availableAmenities = [
     "WiFi",
@@ -350,10 +156,36 @@ export default function HotelAdminPage() {
   const [editFormData, setEditFormData] = useState({})
   const [cancelReason, setCancelReason] = useState("")
 
-  const filteredBookings = bookings?.filter(
+  // Transform database booking data to match UI expectations
+  const transformBookingData = (dbBooking) => {
+    if (!dbBooking) return null
+
+    return {
+      id: dbBooking.id,
+      guestName: dbBooking.guest_name,
+      checkIn: new Date(dbBooking.check_in),
+      checkOut: new Date(dbBooking.check_out),
+      roomType: dbBooking.room_type,
+      roomNumber: dbBooking.room_number || "TBD",
+      guests: dbBooking.guests,
+      status: dbBooking.booking_status,
+      totalAmount: dbBooking.total_amount,
+      paymentStatus: dbBooking.payment_status,
+      email: dbBooking.email,
+      phone: dbBooking.phone,
+      specialRequests: dbBooking.special_requests,
+      bookingReference: dbBooking.booking_reference,
+      currency: dbBooking.currency || "PKR",
+    }
+  }
+
+  // Transform bookings data for UI
+  const transformedBookings = bookings?.map(transformBookingData).filter(Boolean) || []
+
+  const filteredBookings = transformedBookings.filter(
     (booking) =>
       booking.guestName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      booking.id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      booking.bookingReference?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       booking.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
@@ -452,7 +284,7 @@ export default function HotelAdminPage() {
     try {
       await updateBooking(selectedBooking.id, { booking_status: "checked-in" })
       setShowCheckInDialog(false)
-      showToast("Success", `${selectedBooking.guest_name} has been checked in`)
+      showToast("Success", `${selectedBooking.guestName} has been checked in`)
     } catch (error) {
       showToast("Error", "Failed to check in guest", "destructive")
     }
@@ -463,12 +295,7 @@ export default function HotelAdminPage() {
     if (!selectedBooking) return
 
     try {
-      await simulateAsyncOperation("check-out")
-
-      // setBookings((prev) =>
-      //   prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, status: "checked-out" } : booking)),
-      // )
-
+      await updateBooking(selectedBooking.id, { booking_status: "checked-out" })
       setSelectedBooking((prev) => ({ ...prev, status: "checked-out" }))
       setShowCheckOutDialog(false)
       showToast("Success", `${selectedBooking.guestName} has been checked out from ${selectedBooking.roomNumber}`)
@@ -507,12 +334,7 @@ export default function HotelAdminPage() {
     if (!selectedBooking) return
 
     try {
-      await simulateAsyncOperation("edit-booking")
-
-      // setBookings((prev) =>
-      //   prev.map((booking) => (booking.id === selectedBooking.id ? { ...booking, ...editFormData } : booking)),
-      // )
-
+      await updateBooking(selectedBooking.id, editFormData)
       setSelectedBooking((prev) => ({ ...prev, ...editFormData }))
       setShowEditDialog(false)
       setEditFormData({})
@@ -530,14 +352,7 @@ export default function HotelAdminPage() {
     }
 
     try {
-      await simulateAsyncOperation("cancel-booking")
-
-      // setBookings((prev) =>
-      //   prev.map((booking) =>
-      //     booking.id === selectedBooking.id ? { ...booking, status: "cancelled", cancelReason } : booking,
-      //   ),
-      // )
-
+      await cancelBooking(selectedBooking.id, cancelReason)
       setSelectedBooking((prev) => ({ ...prev, status: "cancelled", cancelReason }))
       setShowCancelDialog(false)
       setCancelReason("")
@@ -550,16 +365,10 @@ export default function HotelAdminPage() {
   // Handle status changes
   const handleStatusChange = async (bookingId, newStatus) => {
     try {
-      await simulateAsyncOperation("status-change", 500)
-
-      // setBookings((prev) =>
-      //   prev.map((booking) => (booking.id === bookingId ? { ...booking, status: newStatus } : booking)),
-      // )
-
+      await updateBooking(bookingId, { booking_status: newStatus })
       if (selectedBooking && selectedBooking.id === bookingId) {
         setSelectedBooking((prev) => ({ ...prev, status: newStatus }))
       }
-
       showToast("Success", `Booking status updated to ${newStatus}`)
     } catch (error) {
       handleError(error, "update status")
@@ -568,16 +377,10 @@ export default function HotelAdminPage() {
 
   const handlePaymentStatusChange = async (bookingId, newStatus) => {
     try {
-      await simulateAsyncOperation("payment-status-change", 500)
-
-      // setBookings((prev) =>
-      //   prev.map((booking) => (booking.id === bookingId ? { ...booking, paymentStatus: newStatus } : booking)),
-      // )
-
+      await updateBooking(bookingId, { payment_status: newStatus })
       if (selectedBooking && selectedBooking.id === bookingId) {
         setSelectedBooking((prev) => ({ ...prev, paymentStatus: newStatus }))
       }
-
       showToast("Success", `Payment status updated to ${newStatus}`)
     } catch (error) {
       handleError(error, "update payment status")
@@ -588,15 +391,9 @@ export default function HotelAdminPage() {
   const handleInquiryStatusChange = async (inquiryId, newStatus) => {
     try {
       await simulateAsyncOperation("inquiry-status-change", 500)
-
-      // setInquiries((prev) =>
-      //   prev.map((inquiry) => (inquiry.id === inquiryId ? { ...inquiry, status: newStatus } : inquiry)),
-      // )
-
       if (selectedInquiry && selectedInquiry.id === inquiryId) {
         setSelectedInquiry((prev) => ({ ...prev, status: newStatus }))
       }
-
       showToast("Success", `Inquiry status updated to ${newStatus}`)
     } catch (error) {
       handleError(error, "update inquiry status")
@@ -611,14 +408,7 @@ export default function HotelAdminPage() {
     }
 
     try {
-      await simulateAsyncOperation("send-inquiry-reply")
-
-      // setInquiries((prev) =>
-      //   prev.map((inquiry) =>
-      //     inquiry.id === selectedInquiry.id ? { ...inquiry, status: "replied", reply: reply.trim() } : inquiry,
-      //   ),
-      // )
-
+      await replyToInquiry(selectedInquiry.id, reply.trim())
       setSelectedInquiry((prev) => ({ ...prev, status: "replied", reply: reply.trim() }))
       showToast("Success", `Reply sent to ${selectedInquiry.email}`)
     } catch (error) {
@@ -636,23 +426,14 @@ export default function HotelAdminPage() {
       return
     }
 
-    // Check if room number already exists for the same type
-    // if (rooms.find((room) => room.number === roomFormData.number && room.type === roomFormData.type)) {
-    //   showToast("Error", "Room/bed number already exists for this type", "destructive")
-    //   return
-    // }
-
     try {
-      await simulateAsyncOperation("add-room")
-
       const newRoom = {
-        id: `${roomFormData.type}-${roomFormData.number}-${Date.now()}`,
         ...roomFormData,
         capacity: Number.parseInt(roomFormData.capacity),
         floor: Number.parseInt(roomFormData.floor),
       }
 
-      // setRooms((prev) => [...prev, newRoom])
+      await createRoom(newRoom)
       setShowAddRoomDialog(false)
       setRoomFormData({
         number: "",
@@ -679,28 +460,14 @@ export default function HotelAdminPage() {
       return
     }
 
-    // Check if room number already exists (excluding current room)
-    // if (rooms.find((room) => room.number === roomFormData.number && room.type === roomFormData.type && room.id !== selectedRoom.id)) {
-    //   showToast("Error", "Room/bed number already exists for this type", "destructive")
-    //   return
-    // }
-
     try {
-      await simulateAsyncOperation("edit-room")
+      const updatedRoom = {
+        ...roomFormData,
+        capacity: Number.parseInt(roomFormData.capacity),
+        floor: Number.parseInt(roomFormData.floor),
+      }
 
-      // setRooms((prev) =>
-      //   prev.map((room) =>
-      //     room.id === selectedRoom.id
-      //       ? {
-      //           ...room,
-      //           ...roomFormData,
-      //           capacity: Number.parseInt(roomFormData.capacity),
-      //           floor: Number.parseInt(roomFormData.floor),
-      //         }
-      //       : room,
-      //   ),
-      // )
-
+      await updateRoom(selectedRoom.id, updatedRoom)
       setShowEditRoomDialog(false)
       setSelectedRoom(null)
       setRoomFormData({
@@ -729,9 +496,7 @@ export default function HotelAdminPage() {
     }
 
     try {
-      await simulateAsyncOperation("delete-room")
-
-      // setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id))
+      await deleteRoom(selectedRoom.id)
       setShowDeleteRoomDialog(false)
       setSelectedRoom(null)
       showToast("Success", `${getRoomTypeLabel(selectedRoom.type)} ${selectedRoom.number} deleted successfully`)
@@ -742,9 +507,7 @@ export default function HotelAdminPage() {
 
   const handleRoomStatusChange = async (roomId, newStatus) => {
     try {
-      await simulateAsyncOperation("room-status-change", 500)
-
-      // setRooms((prev) => prev.map((room) => (room.id === roomId ? { ...room, status: newStatus } : room)))
+      await updateRoom(roomId, { status: newStatus })
       showToast("Success", `Room status updated to ${newStatus}`)
     } catch (error) {
       handleError(error, "update room status")
@@ -783,6 +546,13 @@ export default function HotelAdminPage() {
     setFormErrors({})
   }
 
+  // Debug logging
+  console.log("=== ADMIN PAGE DEBUG ===")
+  console.log("Bookings loading:", bookingsLoading)
+  console.log("Raw bookings from hook:", bookings)
+  console.log("Transformed bookings:", transformedBookings)
+  console.log("Filtered bookings:", filteredBookings)
+
   return (
     <div className="flex min-h-screen bg-gray-100">
       {/* Sidebar */}
@@ -816,6 +586,9 @@ export default function HotelAdminPage() {
               >
                 <Calendar className="h-5 w-5" />
                 <span>Bookings</span>
+                {transformedBookings.length > 0 && (
+                  <Badge className="ml-auto bg-blue-500">{transformedBookings.length}</Badge>
+                )}
               </button>
             </li>
             <li>
@@ -827,7 +600,7 @@ export default function HotelAdminPage() {
               >
                 <Inbox className="h-5 w-5" />
                 <span>Inquiries</span>
-                <Badge className="ml-auto bg-red-500">{inquiries?.filter((i) => i.status === "new").length}</Badge>
+                <Badge className="ml-auto bg-red-500">{inquiries?.filter((i) => i.status === "new").length || 0}</Badge>
               </button>
             </li>
             <li>
@@ -927,8 +700,10 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Total Bookings</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{bookings?.length}</div>
-                    <p className="text-xs text-muted-foreground mt-1">+2 from yesterday</p>
+                    <div className="text-3xl font-bold">{transformedBookings?.length || 0}</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {bookingsLoading ? "Loading..." : "Real-time data"}
+                    </p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -936,8 +711,10 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Current Occupancy</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">68%</div>
-                    <p className="text-xs text-emerald-500 mt-1">+5% from last week</p>
+                    <div className="text-3xl font-bold">
+                      {transformedBookings?.filter((b) => b.status === "checked-in").length || 0}
+                    </div>
+                    <p className="text-xs text-emerald-500 mt-1">Currently checked in</p>
                   </CardContent>
                 </Card>
                 <Card>
@@ -945,7 +722,7 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">New Inquiries</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{inquiries?.filter((i) => i.status === "new").length}</div>
+                    <div className="text-3xl font-bold">{inquiries?.filter((i) => i.status === "new").length || 0}</div>
                     <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
                   </CardContent>
                 </Card>
@@ -954,8 +731,13 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">Revenue (This Month)</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">Rs 324,000</div>
-                    <p className="text-xs text-emerald-500 mt-1">+12% from last month</p>
+                    <div className="text-3xl font-bold">
+                      Rs{" "}
+                      {transformedBookings
+                        ?.reduce((total, booking) => total + (booking.totalAmount || 0), 0)
+                        .toLocaleString() || 0}
+                    </div>
+                    <p className="text-xs text-emerald-500 mt-1">From current bookings</p>
                   </CardContent>
                 </Card>
               </div>
@@ -964,37 +746,50 @@ export default function HotelAdminPage() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Recent Bookings</CardTitle>
-                    <CardDescription>Latest 5 bookings received</CardDescription>
+                    <CardDescription>Latest bookings from database</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      {bookings?.slice(0, 5).map((booking) => (
-                        <div key={booking.id} className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium">{booking.guestName}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                    {bookingsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                        <span className="ml-2">Loading bookings...</span>
+                      </div>
+                    ) : transformedBookings.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Calendar className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>No bookings found</p>
+                        <p className="text-sm mt-1">New bookings will appear here</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {transformedBookings.slice(0, 5).map((booking) => (
+                          <div key={booking.id} className="flex items-center justify-between">
+                            <div>
+                              <div className="font-medium">{booking.guestName}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div>{booking.roomType}</div>
+                              <Badge
+                                className={
+                                  booking.status === "confirmed"
+                                    ? "bg-blue-500"
+                                    : booking.status === "checked-in"
+                                      ? "bg-emerald-500"
+                                      : booking.status === "checked-out"
+                                        ? "bg-gray-500"
+                                        : "bg-red-500"
+                                }
+                              >
+                                {booking.status}
+                              </Badge>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div>{booking.roomType}</div>
-                            <Badge
-                              className={
-                                booking.status === "confirmed"
-                                  ? "bg-blue-500"
-                                  : booking.status === "checked-in"
-                                    ? "bg-emerald-500"
-                                    : booking.status === "checked-out"
-                                      ? "bg-gray-500"
-                                      : "bg-red-500"
-                              }
-                            >
-                              {booking.status}
-                            </Badge>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter>
                     <Button
@@ -1053,66 +848,58 @@ export default function HotelAdminPage() {
                   <CardDescription>Check-ins, check-outs, and events for today</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex items-start gap-4">
-                      <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
-                        <Clock className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Check-in: Ahmed Khan (HKH-123456)</div>
-                        <div className="text-sm text-muted-foreground">Deluxe Room - 2 guests - 2:00 PM</div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="ml-auto bg-transparent"
-                        onClick={() => {
-                          const booking = bookings?.find((b) => b.id === "HKH-123456")
-                          if (booking) {
-                            setSelectedBooking(booking)
-                            setActiveTab("bookings")
-                          }
-                        }}
-                      >
-                        View Details
-                      </Button>
+                  {bookingsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin" />
+                      <span className="ml-2">Loading schedule...</span>
                     </div>
-                    <div className="flex items-start gap-4">
-                      <div className="bg-red-100 text-red-700 p-2 rounded-full">
-                        <Clock className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-medium">Check-out: Michael Brown (HKH-345678)</div>
-                        <div className="text-sm text-muted-foreground">Budget Single Room - 1 guest - 12:00 PM</div>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="ml-auto bg-transparent"
-                        onClick={() => {
-                          const booking = bookings?.find((b) => b.id === "HKH-345678")
-                          if (booking) {
-                            setSelectedBooking(booking)
-                            setActiveTab("bookings")
-                          }
-                        }}
-                      >
-                        View Details
-                      </Button>
+                  ) : (
+                    <div className="space-y-4">
+                      {transformedBookings
+                        .filter((booking) => {
+                          const today = new Date().toDateString()
+                          return booking.checkIn.toDateString() === today || booking.checkOut.toDateString() === today
+                        })
+                        .map((booking) => (
+                          <div key={booking.id} className="flex items-start gap-4">
+                            <div className="bg-blue-100 text-blue-700 p-2 rounded-full">
+                              <Clock className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <div className="font-medium">
+                                {booking.checkIn.toDateString() === new Date().toDateString()
+                                  ? "Check-in"
+                                  : "Check-out"}
+                                : {booking.guestName} ({booking.bookingReference})
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {booking.roomType} - {booking.guests} guests
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="ml-auto bg-transparent"
+                              onClick={() => {
+                                setSelectedBooking(booking)
+                                setActiveTab("bookings")
+                              }}
+                            >
+                              View Details
+                            </Button>
+                          </div>
+                        ))}
+                      {transformedBookings.filter((booking) => {
+                        const today = new Date().toDateString()
+                        return booking.checkIn.toDateString() === today || booking.checkOut.toDateString() === today
+                      }).length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>No scheduled activities for today</p>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-start gap-4">
-                      <div className="bg-purple-100 text-purple-700 p-2 rounded-full">
-                        <Users className="h-5 w-5" />
-                      </div>
-                      <div>
-                        <div className="font-medium">NGO Meeting: UNDP Pakistan</div>
-                        <div className="text-sm text-muted-foreground">Conference Room - 10 attendees - 3:00 PM</div>
-                      </div>
-                      <Button size="sm" variant="outline" className="ml-auto bg-transparent">
-                        View Details
-                      </Button>
-                    </div>
-                  </div>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -1128,221 +915,253 @@ export default function HotelAdminPage() {
                 </Button>
               </div>
 
-              <Tabs defaultValue="all">
-                <TabsList>
-                  <TabsTrigger value="all">All</TabsTrigger>
-                  <TabsTrigger value="confirmed">Confirmed</TabsTrigger>
-                  <TabsTrigger value="checked-in">Checked In</TabsTrigger>
-                  <TabsTrigger value="checked-out">Checked Out</TabsTrigger>
-                  <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
-                </TabsList>
-                <TabsContent value="all" className="mt-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Booking ID</th>
-                            <th className="text-left p-4">Guest</th>
-                            <th className="text-left p-4">Dates</th>
-                            <th className="text-left p-4">Room</th>
-                            <th className="text-left p-4">Status</th>
-                            <th className="text-left p-4">Payment</th>
-                            <th className="text-left p-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBookings?.map((booking) => (
-                            <tr key={booking.id} className="border-b hover:bg-muted/50">
-                              <td className="p-4 font-medium">{booking.id}</td>
-                              <td className="p-4">{booking.guestName}</td>
-                              <td className="p-4">
-                                {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
-                              </td>
-                              <td className="p-4">{booking.roomType}</td>
-                              <td className="p-4">
-                                <Badge
-                                  className={
-                                    booking.status === "confirmed"
-                                      ? "bg-blue-500"
-                                      : booking.status === "checked-in"
-                                        ? "bg-emerald-500"
-                                        : booking.status === "checked-out"
-                                          ? "bg-gray-500"
-                                          : "bg-red-500"
-                                  }
-                                >
-                                  {booking.status}
-                                </Badge>
-                              </td>
-                              <td className="p-4">
-                                <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
-                                  View
-                                </Button>
-                              </td>
+              {bookingsLoading ? (
+                <Card>
+                  <CardContent className="flex items-center justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin mr-2" />
+                    <span>Loading bookings...</span>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Tabs defaultValue="all">
+                  <TabsList>
+                    <TabsTrigger value="all">All ({transformedBookings.length})</TabsTrigger>
+                    <TabsTrigger value="confirmed">
+                      Confirmed ({transformedBookings.filter((b) => b.status === "confirmed").length})
+                    </TabsTrigger>
+                    <TabsTrigger value="checked-in">
+                      Checked In ({transformedBookings.filter((b) => b.status === "checked-in").length})
+                    </TabsTrigger>
+                    <TabsTrigger value="checked-out">
+                      Checked Out ({transformedBookings.filter((b) => b.status === "checked-out").length})
+                    </TabsTrigger>
+                    <TabsTrigger value="cancelled">
+                      Cancelled ({transformedBookings.filter((b) => b.status === "cancelled").length})
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="all" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        {filteredBookings.length === 0 ? (
+                          <div className="text-center py-12">
+                            <Calendar className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                            <p className="text-lg font-medium">No bookings found</p>
+                            <p className="text-muted-foreground mt-2">
+                              {searchQuery ? "Try adjusting your search" : "New bookings will appear here"}
+                            </p>
+                          </div>
+                        ) : (
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-4">Booking ID</th>
+                                <th className="text-left p-4">Guest</th>
+                                <th className="text-left p-4">Dates</th>
+                                <th className="text-left p-4">Room</th>
+                                <th className="text-left p-4">Status</th>
+                                <th className="text-left p-4">Payment</th>
+                                <th className="text-left p-4">Actions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {filteredBookings.map((booking) => (
+                                <tr key={booking.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-4 font-medium">{booking.bookingReference}</td>
+                                  <td className="p-4">{booking.guestName}</td>
+                                  <td className="p-4">
+                                    {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                                  </td>
+                                  <td className="p-4">{booking.roomType}</td>
+                                  <td className="p-4">
+                                    <Badge
+                                      className={
+                                        booking.status === "confirmed"
+                                          ? "bg-blue-500"
+                                          : booking.status === "checked-in"
+                                            ? "bg-emerald-500"
+                                            : booking.status === "checked-out"
+                                              ? "bg-gray-500"
+                                              : "bg-red-500"
+                                      }
+                                    >
+                                      {booking.status}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-4">
+                                    <Badge
+                                      className={booking.paymentStatus === "paid" ? "bg-emerald-500" : "bg-amber-500"}
+                                    >
+                                      {booking.paymentStatus}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-4">
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
+                                      View
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="confirmed" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-4">Booking ID</th>
+                              <th className="text-left p-4">Guest</th>
+                              <th className="text-left p-4">Dates</th>
+                              <th className="text-left p-4">Room</th>
+                              <th className="text-left p-4">Payment</th>
+                              <th className="text-left p-4">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="confirmed" className="mt-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Booking ID</th>
-                            <th className="text-left p-4">Guest</th>
-                            <th className="text-left p-4">Dates</th>
-                            <th className="text-left p-4">Room</th>
-                            <th className="text-left p-4">Payment</th>
-                            <th className="text-left p-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBookings
-                            ?.filter((b) => b.status === "confirmed")
-                            .map((booking) => (
-                              <tr key={booking.id} className="border-b hover:bg-muted/50">
-                                <td className="p-4 font-medium">{booking.id}</td>
-                                <td className="p-4">{booking.guestName}</td>
-                                <td className="p-4">
-                                  {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
-                                </td>
-                                <td className="p-4">{booking.roomType}</td>
-                                <td className="p-4">
-                                  <Badge
-                                    className={booking.paymentStatus === "paid" ? "bg-emerald-500" : "bg-amber-500"}
-                                  >
-                                    {booking.paymentStatus}
-                                  </Badge>
-                                </td>
-                                <td className="p-4">
-                                  <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
-                                    View
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="checked-in" className="mt-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Booking ID</th>
-                            <th className="text-left p-4">Guest</th>
-                            <th className="text-left p-4">Room</th>
-                            <th className="text-left p-4">Check-out Date</th>
-                            <th className="text-left p-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBookings
-                            ?.filter((b) => b.status === "checked-in")
-                            .map((booking) => (
-                              <tr key={booking.id} className="border-b hover:bg-muted/50">
-                                <td className="p-4 font-medium">{booking.id}</td>
-                                <td className="p-4">{booking.guestName}</td>
-                                <td className="p-4">{booking.roomNumber}</td>
-                                <td className="p-4">{format(booking.checkOut, "MMM d, yyyy")}</td>
-                                <td className="p-4">
-                                  <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
-                                    View
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="checked-out" className="mt-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Booking ID</th>
-                            <th className="text-left p-4">Guest</th>
-                            <th className="text-left p-4">Dates</th>
-                            <th className="text-left p-4">Total Amount</th>
-                            <th className="text-left p-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBookings
-                            ?.filter((b) => b.status === "checked-out")
-                            .map((booking) => (
-                              <tr key={booking.id} className="border-b hover:bg-muted/50">
-                                <td className="p-4 font-medium">{booking.id}</td>
-                                <td className="p-4">{booking.guestName}</td>
-                                <td className="p-4">
-                                  {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
-                                </td>
-                                <td className="p-4">
-                                  {booking.roomType?.includes("Dormitory") || booking.roomType?.includes("Budget")
-                                    ? "Rs"
-                                    : "$"}
-                                  {booking.totalAmount?.toLocaleString()}
-                                </td>
-                                <td className="p-4">
-                                  <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
-                                    View
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-                <TabsContent value="cancelled" className="mt-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left p-4">Booking ID</th>
-                            <th className="text-left p-4">Guest</th>
-                            <th className="text-left p-4">Dates</th>
-                            <th className="text-left p-4">Reason</th>
-                            <th className="text-left p-4">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredBookings
-                            ?.filter((b) => b.status === "cancelled")
-                            .map((booking) => (
-                              <tr key={booking.id} className="border-b hover:bg-muted/50">
-                                <td className="p-4 font-medium">{booking.id}</td>
-                                <td className="p-4">{booking.guestName}</td>
-                                <td className="p-4">
-                                  {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
-                                </td>
-                                <td className="p-4">{booking.cancelReason || "No reason provided"}</td>
-                                <td className="p-4">
-                                  <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
-                                    View
-                                  </Button>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
-              </Tabs>
+                          </thead>
+                          <tbody>
+                            {filteredBookings
+                              .filter((b) => b.status === "confirmed")
+                              .map((booking) => (
+                                <tr key={booking.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-4 font-medium">{booking.bookingReference}</td>
+                                  <td className="p-4">{booking.guestName}</td>
+                                  <td className="p-4">
+                                    {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                                  </td>
+                                  <td className="p-4">{booking.roomType}</td>
+                                  <td className="p-4">
+                                    <Badge
+                                      className={booking.paymentStatus === "paid" ? "bg-emerald-500" : "bg-amber-500"}
+                                    >
+                                      {booking.paymentStatus}
+                                    </Badge>
+                                  </td>
+                                  <td className="p-4">
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
+                                      View
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="checked-in" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-4">Booking ID</th>
+                              <th className="text-left p-4">Guest</th>
+                              <th className="text-left p-4">Room</th>
+                              <th className="text-left p-4">Check-out Date</th>
+                              <th className="text-left p-4">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredBookings
+                              .filter((b) => b.status === "checked-in")
+                              .map((booking) => (
+                                <tr key={booking.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-4 font-medium">{booking.bookingReference}</td>
+                                  <td className="p-4">{booking.guestName}</td>
+                                  <td className="p-4">{booking.roomNumber}</td>
+                                  <td className="p-4">{format(booking.checkOut, "MMM d, yyyy")}</td>
+                                  <td className="p-4">
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
+                                      View
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="checked-out" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-4">Booking ID</th>
+                              <th className="text-left p-4">Guest</th>
+                              <th className="text-left p-4">Dates</th>
+                              <th className="text-left p-4">Total Amount</th>
+                              <th className="text-left p-4">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredBookings
+                              .filter((b) => b.status === "checked-out")
+                              .map((booking) => (
+                                <tr key={booking.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-4 font-medium">{booking.bookingReference}</td>
+                                  <td className="p-4">{booking.guestName}</td>
+                                  <td className="p-4">
+                                    {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                                  </td>
+                                  <td className="p-4">
+                                    {booking.currency === "PKR" ? "Rs" : "$"}
+                                    {booking.totalAmount?.toLocaleString()}
+                                  </td>
+                                  <td className="p-4">
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
+                                      View
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                  <TabsContent value="cancelled" className="mt-4">
+                    <Card>
+                      <CardContent className="p-0">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="border-b">
+                              <th className="text-left p-4">Booking ID</th>
+                              <th className="text-left p-4">Guest</th>
+                              <th className="text-left p-4">Dates</th>
+                              <th className="text-left p-4">Reason</th>
+                              <th className="text-left p-4">Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredBookings
+                              .filter((b) => b.status === "cancelled")
+                              .map((booking) => (
+                                <tr key={booking.id} className="border-b hover:bg-muted/50">
+                                  <td className="p-4 font-medium">{booking.bookingReference}</td>
+                                  <td className="p-4">{booking.guestName}</td>
+                                  <td className="p-4">
+                                    {format(booking.checkIn, "MMM d")} - {format(booking.checkOut, "MMM d")}
+                                  </td>
+                                  <td className="p-4">{booking.cancelReason || "No reason provided"}</td>
+                                  <td className="p-4">
+                                    <Button size="sm" variant="outline" onClick={() => setSelectedBooking(booking)}>
+                                      View
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))}
+                          </tbody>
+                        </table>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </Tabs>
+              )}
             </div>
           )}
 
@@ -1373,13 +1192,13 @@ export default function HotelAdminPage() {
                 <Card className="md:col-span-2">
                   <CardHeader>
                     <CardTitle>Booking Information</CardTitle>
-                    <CardDescription>Details for booking {selectedBooking.id}</CardDescription>
+                    <CardDescription>Details for booking {selectedBooking.bookingReference}</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="grid gap-4 md:grid-cols-2">
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Booking ID</h3>
-                        <p className="font-medium">{selectedBooking.id}</p>
+                        <p className="font-medium">{selectedBooking.bookingReference}</p>
                       </div>
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Guest Name</h3>
@@ -1416,10 +1235,7 @@ export default function HotelAdminPage() {
                       <div>
                         <h3 className="text-sm font-medium text-muted-foreground mb-1">Total Amount</h3>
                         <p className="font-medium">
-                          {selectedBooking.roomType?.includes("Dormitory") ||
-                          selectedBooking.roomType?.includes("Budget")
-                            ? "Rs"
-                            : "$"}
+                          {selectedBooking.currency === "PKR" ? "Rs" : "$"}
                           {selectedBooking.totalAmount?.toLocaleString()}
                         </p>
                       </div>
@@ -1502,9 +1318,9 @@ export default function HotelAdminPage() {
                       className="w-full bg-transparent"
                       disabled={isLoading}
                       onClick={() => {
-                        setEmailSubject(`Booking Confirmation - ${selectedBooking.id}`)
+                        setEmailSubject(`Booking Confirmation - ${selectedBooking.bookingReference}`)
                         setEmailMessage(
-                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Heights Chitral has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.id}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Accommodation: ${selectedBooking.roomType}\n- Total Amount: ${selectedBooking.roomType?.includes("Dormitory") || selectedBooking.roomType?.includes("Budget") ? "Rs" : "$"}${selectedBooking.totalAmount?.toLocaleString()}\n\nWe look forward to welcoming you with traditional mountain hospitality!\n\nBest regards,\nHindukush Heights Chitral Team`,
+                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Heights Chitral has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.bookingReference}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Accommodation: ${selectedBooking.roomType}\n- Total Amount: ${selectedBooking.currency === "PKR" ? "Rs" : "$"}${selectedBooking.totalAmount?.toLocaleString()}\n\nWe look forward to welcoming you with traditional mountain hospitality!\n\nBest regards,\nHindukush Heights Chitral Team`,
                         )
                         setShowEmailDialog(true)
                       }}
@@ -1518,11 +1334,11 @@ export default function HotelAdminPage() {
                       disabled={isLoading}
                       onClick={() => {
                         setEditFormData({
-                          guestName: selectedBooking.guestName,
+                          guest_name: selectedBooking.guestName,
                           email: selectedBooking.email,
                           phone: selectedBooking.phone,
-                          roomNumber: selectedBooking.roomNumber,
-                          specialRequests: selectedBooking.specialRequests || "",
+                          room_number: selectedBooking.roomNumber,
+                          special_requests: selectedBooking.specialRequests || "",
                         })
                         setShowEditDialog(true)
                       }}
@@ -1578,7 +1394,7 @@ export default function HotelAdminPage() {
                             <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                               <td className="p-4 font-medium">{inquiry.id}</td>
                               <td className="p-4">{inquiry.name}</td>
-                              <td className="p-4">{format(inquiry.date, "MMM d, yyyy")}</td>
+                              <td className="p-4">{format(new Date(inquiry.created_at), "MMM d, yyyy")}</td>
                               <td className="p-4 max-w-xs truncate">{inquiry.message}</td>
                               <td className="p-4">
                                 <Badge className={inquiry.status === "new" ? "bg-red-500" : "bg-emerald-500"}>
@@ -1617,7 +1433,7 @@ export default function HotelAdminPage() {
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{inquiry.id}</td>
                                 <td className="p-4">{inquiry.name}</td>
-                                <td className="p-4">{format(inquiry.date, "MMM d, yyyy")}</td>
+                                <td className="p-4">{format(new Date(inquiry.created_at), "MMM d, yyyy")}</td>
                                 <td className="p-4 max-w-xs truncate">{inquiry.message}</td>
                                 <td className="p-4">
                                   <Button size="sm" variant="outline" onClick={() => setSelectedInquiry(inquiry)}>
@@ -1651,7 +1467,7 @@ export default function HotelAdminPage() {
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                                 <td className="p-4 font-medium">{inquiry.id}</td>
                                 <td className="p-4">{inquiry.name}</td>
-                                <td className="p-4">{format(inquiry.date, "MMM d, yyyy")}</td>
+                                <td className="p-4">{format(new Date(inquiry.created_at), "MMM d, yyyy")}</td>
                                 <td className="p-4 max-w-xs truncate">{inquiry.message}</td>
                                 <td className="p-4">
                                   <Button size="sm" variant="outline" onClick={() => setSelectedInquiry(inquiry)}>
@@ -1685,7 +1501,7 @@ export default function HotelAdminPage() {
                     <div>
                       <CardTitle>{selectedInquiry.name}</CardTitle>
                       <CardDescription>
-                        {format(selectedInquiry.date, "MMMM d, yyyy")} · {selectedInquiry.email} ·{" "}
+                        {format(new Date(selectedInquiry.created_at), "MMMM d, yyyy")} · {selectedInquiry.email} ·{" "}
                         {selectedInquiry.phone}
                       </CardDescription>
                     </div>
@@ -2194,7 +2010,7 @@ export default function HotelAdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {bookings?.map((booking) => (
+                      {transformedBookings?.map((booking) => (
                         <tr key={booking.id} className="border-b hover:bg-muted/50">
                           <td className="p-4 font-medium">{booking.guestName}</td>
                           <td className="p-4">{booking.email}</td>
@@ -2399,8 +2215,8 @@ export default function HotelAdminPage() {
                 <Label htmlFor="edit-guest-name">Guest Name</Label>
                 <Input
                   id="edit-guest-name"
-                  value={editFormData.guestName || ""}
-                  onChange={(e) => setEditFormData((prev) => ({ ...prev, guestName: e.target.value }))}
+                  value={editFormData.guest_name || ""}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, guest_name: e.target.value }))}
                 />
               </div>
               <div className="space-y-2">
@@ -2423,8 +2239,8 @@ export default function HotelAdminPage() {
                 <Label htmlFor="edit-room-number">Room/Bed Number</Label>
                 <Input
                   id="edit-room-number"
-                  value={editFormData.roomNumber || ""}
-                  onChange={(e) => setEditFormData((prev) => ({ ...prev, roomNumber: e.target.value }))}
+                  value={editFormData.room_number || ""}
+                  onChange={(e) => setEditFormData((prev) => ({ ...prev, room_number: e.target.value }))}
                 />
               </div>
             </div>
@@ -2432,8 +2248,8 @@ export default function HotelAdminPage() {
               <Label htmlFor="edit-special-requests">Special Requests</Label>
               <Textarea
                 id="edit-special-requests"
-                value={editFormData.specialRequests || ""}
-                onChange={(e) => setEditFormData((prev) => ({ ...prev, specialRequests: e.target.value }))}
+                value={editFormData.special_requests || ""}
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, special_requests: e.target.value }))}
                 placeholder="Any special requests"
               />
             </div>
