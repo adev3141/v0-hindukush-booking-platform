@@ -5,44 +5,73 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Calendar, MapPin, Users, Check } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { Textarea } from "@/components/ui/textarea"
+import { Calendar } from "@/components/ui/calendar"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { format } from "date-fns"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
 
 interface BookingData {
-  checkIn: string
-  checkOut: string
-  guests: number
-  roomType: string
-  name: string
+  // Guest Information
+  firstName: string
+  lastName: string
   email: string
   phone: string
+  nationality: string
+
+  // Booking Details
+  checkIn: Date | undefined
+  checkOut: Date | undefined
+  roomType: string
+  guests: number
+
+  // Special Requests
   specialRequests: string
+
+  // Emergency Contact
+  emergencyName: string
+  emergencyPhone: string
 }
+
+const initialBookingData: BookingData = {
+  firstName: "",
+  lastName: "",
+  email: "",
+  phone: "",
+  nationality: "",
+  checkIn: undefined,
+  checkOut: undefined,
+  roomType: "",
+  guests: 1,
+  specialRequests: "",
+  emergencyName: "",
+  emergencyPhone: "",
+}
+
+const roomTypes = [
+  { value: "dormitory", label: "Dormitory Bed", price: 800 },
+  { value: "standard", label: "Standard Room", price: 2500 },
+  { value: "deluxe", label: "Deluxe Room", price: 4000 },
+  { value: "suite", label: "Heritage Suite", price: 6500 },
+]
 
 export function MultiStepBooking() {
   const [currentStep, setCurrentStep] = useState(1)
+  const [bookingData, setBookingData] = useState<BookingData>(initialBookingData)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { toast } = useToast()
 
-  const [bookingData, setBookingData] = useState<BookingData>({
-    checkIn: "",
-    checkOut: "",
-    guests: 1,
-    roomType: "",
-    name: "",
-    email: "",
-    phone: "",
-    specialRequests: "",
-  })
+  const totalSteps = 4
 
-  const updateBookingData = (field: keyof BookingData, value: string | number) => {
+  const updateBookingData = (field: keyof BookingData, value: any) => {
     setBookingData((prev) => ({ ...prev, [field]: value }))
   }
 
   const nextStep = () => {
-    if (currentStep < 4) {
+    if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1)
     }
   }
@@ -50,6 +79,35 @@ export function MultiStepBooking() {
   const prevStep = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1)
+    }
+  }
+
+  const calculateNights = () => {
+    if (bookingData.checkIn && bookingData.checkOut) {
+      const diffTime = Math.abs(bookingData.checkOut.getTime() - bookingData.checkIn.getTime())
+      return Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    }
+    return 0
+  }
+
+  const calculateTotal = () => {
+    const selectedRoom = roomTypes.find((room) => room.value === bookingData.roomType)
+    const nights = calculateNights()
+    return selectedRoom ? selectedRoom.price * nights : 0
+  }
+
+  const validateStep = (step: number) => {
+    switch (step) {
+      case 1:
+        return bookingData.firstName && bookingData.lastName && bookingData.email && bookingData.phone
+      case 2:
+        return bookingData.checkIn && bookingData.checkOut && bookingData.roomType
+      case 3:
+        return true // Special requests are optional
+      case 4:
+        return bookingData.emergencyName && bookingData.emergencyPhone
+      default:
+        return false
     }
   }
 
@@ -64,27 +122,25 @@ export function MultiStepBooking() {
         },
         body: JSON.stringify({
           ...bookingData,
-          status: "pending",
+          totalAmount: calculateTotal(),
+          nights: calculateNights(),
         }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to submit booking")
+      if (response.ok) {
+        toast({
+          title: "Booking Confirmed!",
+          description: "Your reservation has been successfully submitted. We'll contact you shortly.",
+        })
+        setBookingData(initialBookingData)
+        setCurrentStep(1)
+      } else {
+        throw new Error("Booking failed")
       }
-
-      const result = await response.json()
-
-      toast({
-        title: "Booking Submitted!",
-        description: "We'll contact you shortly to confirm your reservation.",
-      })
-
-      setCurrentStep(4)
     } catch (error) {
-      console.error("Booking error:", error)
       toast({
         title: "Booking Failed",
-        description: "Please try again or contact us directly.",
+        description: "There was an error processing your booking. Please try again.",
         variant: "destructive",
       })
     } finally {
@@ -92,258 +148,289 @@ export function MultiStepBooking() {
     }
   }
 
-  const steps = [
-    { number: 1, title: "Dates & Guests", icon: Calendar },
-    { number: 2, title: "Room Selection", icon: MapPin },
-    { number: 3, title: "Guest Details", icon: Users },
-    { number: 4, title: "Confirmation", icon: Check },
-  ]
+  const renderStep = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="firstName">First Name *</Label>
+                <Input
+                  id="firstName"
+                  value={bookingData.firstName}
+                  onChange={(e) => updateBookingData("firstName", e.target.value)}
+                  placeholder="Enter your first name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="lastName">Last Name *</Label>
+                <Input
+                  id="lastName"
+                  value={bookingData.lastName}
+                  onChange={(e) => updateBookingData("lastName", e.target.value)}
+                  placeholder="Enter your last name"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="email">Email Address *</Label>
+              <Input
+                id="email"
+                type="email"
+                value={bookingData.email}
+                onChange={(e) => updateBookingData("email", e.target.value)}
+                placeholder="Enter your email address"
+              />
+            </div>
+            <div>
+              <Label htmlFor="phone">Phone Number *</Label>
+              <Input
+                id="phone"
+                value={bookingData.phone}
+                onChange={(e) => updateBookingData("phone", e.target.value)}
+                placeholder="Enter your phone number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="nationality">Nationality</Label>
+              <Input
+                id="nationality"
+                value={bookingData.nationality}
+                onChange={(e) => updateBookingData("nationality", e.target.value)}
+                placeholder="Enter your nationality"
+              />
+            </div>
+          </div>
+        )
 
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Progress Steps */}
-      <div className="flex justify-between mb-8">
-        {steps.map((step, index) => (
-          <div key={step.number} className="flex items-center">
-            <div
-              className={`flex items-center justify-center w-10 h-10 rounded-full border-2 ${
-                currentStep >= step.number ? "bg-blue-600 border-blue-600 text-white" : "border-gray-300 text-gray-500"
-              }`}
-            >
-              <step.icon className="w-5 h-5" />
+      case 2:
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Check-in Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !bookingData.checkIn && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {bookingData.checkIn ? format(bookingData.checkIn, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={bookingData.checkIn}
+                      onSelect={(date) => updateBookingData("checkIn", date)}
+                      disabled={(date) => date < new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div>
+                <Label>Check-out Date *</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full justify-start text-left font-normal",
+                        !bookingData.checkOut && "text-muted-foreground",
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {bookingData.checkOut ? format(bookingData.checkOut, "PPP") : "Select date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={bookingData.checkOut}
+                      onSelect={(date) => updateBookingData("checkOut", date)}
+                      disabled={(date) => date <= (bookingData.checkIn || new Date())}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
-            <div className="ml-3 hidden sm:block">
-              <p className={`text-sm font-medium ${currentStep >= step.number ? "text-blue-600" : "text-gray-500"}`}>
-                {step.title}
-              </p>
+            <div>
+              <Label htmlFor="roomType">Room Type *</Label>
+              <Select value={bookingData.roomType} onValueChange={(value) => updateBookingData("roomType", value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select room type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roomTypes.map((room) => (
+                    <SelectItem key={room.value} value={room.value}>
+                      {room.label} - PKR {room.price}/night
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            {index < steps.length - 1 && (
-              <div className={`w-12 h-0.5 mx-4 ${currentStep > step.number ? "bg-blue-600" : "bg-gray-300"}`} />
+            <div>
+              <Label htmlFor="guests">Number of Guests</Label>
+              <Select
+                value={bookingData.guests.toString()}
+                onValueChange={(value) => updateBookingData("guests", Number.parseInt(value))}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {[1, 2, 3, 4, 5, 6].map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} {num === 1 ? "Guest" : "Guests"}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {bookingData.checkIn && bookingData.checkOut && bookingData.roomType && (
+              <div className="p-4 bg-muted rounded-lg">
+                <h4 className="font-semibold mb-2">Booking Summary</h4>
+                <p>Nights: {calculateNights()}</p>
+                <p>Room: {roomTypes.find((r) => r.value === bookingData.roomType)?.label}</p>
+                <p className="font-semibold">Total: PKR {calculateTotal().toLocaleString()}</p>
+              </div>
             )}
           </div>
-        ))}
-      </div>
+        )
 
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            {currentStep === 1 && "Select Your Dates"}
-            {currentStep === 2 && "Choose Your Room"}
-            {currentStep === 3 && "Guest Information"}
-            {currentStep === 4 && "Booking Confirmed!"}
-          </CardTitle>
-          <CardDescription>
-            {currentStep === 1 && "When would you like to stay with us?"}
-            {currentStep === 2 && "Select the perfect room for your stay"}
-            {currentStep === 3 && "Please provide your contact details"}
-            {currentStep === 4 && "Thank you for choosing Hindukush Heights Sarai"}
-          </CardDescription>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {/* Step 1: Dates & Guests */}
-          {currentStep === 1 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="checkIn">Check-in Date</Label>
-                  <Input
-                    id="checkIn"
-                    type="date"
-                    value={bookingData.checkIn}
-                    onChange={(e) => updateBookingData("checkIn", e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="checkOut">Check-out Date</Label>
-                  <Input
-                    id="checkOut"
-                    type="date"
-                    value={bookingData.checkOut}
-                    onChange={(e) => updateBookingData("checkOut", e.target.value)}
-                    min={bookingData.checkIn || new Date().toISOString().split("T")[0]}
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="guests">Number of Guests</Label>
-                <Select
-                  value={bookingData.guests.toString()}
-                  onValueChange={(value) => updateBookingData("guests", Number.parseInt(value))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select guests" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {[1, 2, 3, 4, 5, 6].map((num) => (
-                      <SelectItem key={num} value={num.toString()}>
-                        {num} {num === 1 ? "Guest" : "Guests"}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+      case 3:
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="specialRequests">Special Requests</Label>
+              <Textarea
+                id="specialRequests"
+                value={bookingData.specialRequests}
+                onChange={(e) => updateBookingData("specialRequests", e.target.value)}
+                placeholder="Any special requests or dietary requirements?"
+                rows={4}
+              />
             </div>
-          )}
-
-          {/* Step 2: Room Selection */}
-          {currentStep === 2 && (
-            <div className="space-y-4">
-              <div className="grid gap-4">
-                {[
-                  {
-                    id: "deluxe",
-                    name: "Deluxe Mountain View",
-                    price: "$120/night",
-                    description: "Spacious room with stunning mountain views",
-                  },
-                  {
-                    id: "suite",
-                    name: "Executive Suite",
-                    price: "$180/night",
-                    description: "Luxury suite with separate living area",
-                  },
-                  {
-                    id: "family",
-                    name: "Family Room",
-                    price: "$200/night",
-                    description: "Perfect for families with connecting rooms",
-                  },
-                ].map((room) => (
-                  <div
-                    key={room.id}
-                    className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      bookingData.roomType === room.id
-                        ? "border-blue-500 bg-blue-50"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => updateBookingData("roomType", room.id)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-semibold">{room.name}</h3>
-                        <p className="text-sm text-gray-600">{room.description}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-blue-600">{room.price}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="p-4 bg-blue-50 rounded-lg">
+              <h4 className="font-semibold mb-2">What's Included</h4>
+              <ul className="text-sm space-y-1">
+                <li>• Traditional Pakistani breakfast</li>
+                <li>• Free WiFi throughout the property</li>
+                <li>• 24/7 front desk service</li>
+                <li>• Mountain view from most rooms</li>
+                <li>• Cultural experience programs</li>
+              </ul>
             </div>
-          )}
+          </div>
+        )
 
-          {/* Step 3: Guest Details */}
-          {currentStep === 3 && (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="name">Full Name</Label>
-                  <Input
-                    id="name"
-                    value={bookingData.name}
-                    onChange={(e) => updateBookingData("name", e.target.value)}
-                    placeholder="Enter your full name"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={bookingData.email}
-                    onChange={(e) => updateBookingData("email", e.target.value)}
-                    placeholder="Enter your email"
-                  />
-                </div>
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  value={bookingData.phone}
-                  onChange={(e) => updateBookingData("phone", e.target.value)}
-                  placeholder="Enter your phone number"
-                />
-              </div>
-              <div>
-                <Label htmlFor="requests">Special Requests</Label>
-                <Textarea
-                  id="requests"
-                  value={bookingData.specialRequests}
-                  onChange={(e) => updateBookingData("specialRequests", e.target.value)}
-                  placeholder="Any special requests or requirements?"
-                  rows={3}
-                />
-              </div>
+      case 4:
+        return (
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="emergencyName">Emergency Contact Name *</Label>
+              <Input
+                id="emergencyName"
+                value={bookingData.emergencyName}
+                onChange={(e) => updateBookingData("emergencyName", e.target.value)}
+                placeholder="Emergency contact full name"
+              />
             </div>
-          )}
-
-          {/* Step 4: Confirmation */}
-          {currentStep === 4 && (
-            <div className="text-center space-y-4">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
-                <Check className="w-8 h-8 text-green-600" />
-              </div>
-              <div>
-                <h3 className="text-xl font-semibold text-green-600">Booking Submitted Successfully!</h3>
-                <p className="text-gray-600 mt-2">
-                  We've received your booking request and will contact you within 24 hours to confirm your reservation.
+            <div>
+              <Label htmlFor="emergencyPhone">Emergency Contact Phone *</Label>
+              <Input
+                id="emergencyPhone"
+                value={bookingData.emergencyPhone}
+                onChange={(e) => updateBookingData("emergencyPhone", e.target.value)}
+                placeholder="Emergency contact phone number"
+              />
+            </div>
+            <div className="p-4 bg-green-50 rounded-lg">
+              <h4 className="font-semibold mb-2">Final Booking Summary</h4>
+              <div className="space-y-1 text-sm">
+                <p>
+                  <strong>Guest:</strong> {bookingData.firstName} {bookingData.lastName}
+                </p>
+                <p>
+                  <strong>Email:</strong> {bookingData.email}
+                </p>
+                <p>
+                  <strong>Check-in:</strong> {bookingData.checkIn ? format(bookingData.checkIn, "PPP") : ""}
+                </p>
+                <p>
+                  <strong>Check-out:</strong> {bookingData.checkOut ? format(bookingData.checkOut, "PPP") : ""}
+                </p>
+                <p>
+                  <strong>Room:</strong> {roomTypes.find((r) => r.value === bookingData.roomType)?.label}
+                </p>
+                <p>
+                  <strong>Guests:</strong> {bookingData.guests}
+                </p>
+                <p>
+                  <strong>Nights:</strong> {calculateNights()}
+                </p>
+                <p className="text-lg font-semibold">
+                  <strong>Total Amount:</strong> PKR {calculateTotal().toLocaleString()}
                 </p>
               </div>
-              <div className="bg-gray-50 p-4 rounded-lg text-left">
-                <h4 className="font-semibold mb-2">Booking Summary:</h4>
-                <div className="space-y-1 text-sm">
-                  <p>
-                    <strong>Dates:</strong> {bookingData.checkIn} to {bookingData.checkOut}
-                  </p>
-                  <p>
-                    <strong>Guests:</strong> {bookingData.guests}
-                  </p>
-                  <p>
-                    <strong>Room:</strong> {bookingData.roomType}
-                  </p>
-                  <p>
-                    <strong>Name:</strong> {bookingData.name}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {bookingData.email}
-                  </p>
-                </div>
-              </div>
             </div>
-          )}
-
-          {/* Navigation Buttons */}
-          <div className="flex justify-between pt-6">
-            <Button variant="outline" onClick={prevStep} disabled={currentStep === 1 || currentStep === 4}>
-              Previous
-            </Button>
-
-            {currentStep < 3 && (
-              <Button
-                onClick={nextStep}
-                disabled={
-                  (currentStep === 1 && (!bookingData.checkIn || !bookingData.checkOut)) ||
-                  (currentStep === 2 && !bookingData.roomType)
-                }
-              >
-                Next
-              </Button>
-            )}
-
-            {currentStep === 3 && (
-              <Button onClick={handleSubmit} disabled={isSubmitting || !bookingData.name || !bookingData.email}>
-                {isSubmitting ? "Submitting..." : "Submit Booking"}
-              </Button>
-            )}
-
-            {currentStep === 4 && <Button onClick={() => window.location.reload()}>Make Another Booking</Button>}
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )
+
+      default:
+        return null
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-2xl mx-auto">
+      <CardHeader>
+        <CardTitle>Book Your Stay</CardTitle>
+        <CardDescription>
+          Step {currentStep} of {totalSteps}:{" "}
+          {currentStep === 1
+            ? "Personal Information"
+            : currentStep === 2
+              ? "Booking Details"
+              : currentStep === 3
+                ? "Special Requests"
+                : "Review & Confirm"}
+        </CardDescription>
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div
+            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+            style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+          />
+        </div>
+      </CardHeader>
+      <CardContent>
+        {renderStep()}
+
+        <div className="flex justify-between mt-6">
+          <Button variant="outline" onClick={prevStep} disabled={currentStep === 1}>
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            Previous
+          </Button>
+
+          {currentStep < totalSteps ? (
+            <Button onClick={nextStep} disabled={!validateStep(currentStep)}>
+              Next
+              <ChevronRight className="w-4 h-4 ml-2" />
+            </Button>
+          ) : (
+            <Button onClick={handleSubmit} disabled={!validateStep(currentStep) || isSubmitting}>
+              {isSubmitting ? "Submitting..." : "Confirm Booking"}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
   )
 }
