@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Hindukush Sarai - Mountain Lodge Booking",
   description:
     "Book your stay at Hindukush Sarai, a traditional mountain lodge in the heart of Pakistan's northern areas.",
-    generator: 'v0.dev'
+    generator: '3Musafir'
 }
 
 export default function RootLayout({

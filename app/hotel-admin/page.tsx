@@ -560,9 +560,9 @@ export default function HotelAdminPage() {
         <div className="p-4 border-b">
           <div className="flex items-center gap-2">
             <Mountain className="h-6 w-6 text-emerald-600" />
-            <span className="text-xl font-semibold">Hindukush Heights</span>
+            <span className="text-xl font-semibold">Hindukush Sarai</span>
           </div>
-          <div className="text-sm text-muted-foreground mt-1">Hotel Admin Panel</div>
+          <div className="text-sm text-muted-foreground mt-1">Sarai Admin Panel</div>
         </div>
         <nav className="flex-1 p-4">
           <ul className="space-y-1">
@@ -1320,7 +1320,7 @@ export default function HotelAdminPage() {
                       onClick={() => {
                         setEmailSubject(`Booking Confirmation - ${selectedBooking.bookingReference}`)
                         setEmailMessage(
-                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Heights Chitral has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.bookingReference}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Accommodation: ${selectedBooking.roomType}\n- Total Amount: ${selectedBooking.currency === "PKR" ? "Rs" : "$"}${selectedBooking.totalAmount?.toLocaleString()}\n\nWe look forward to welcoming you with traditional mountain hospitality!\n\nBest regards,\nHindukush Heights Chitral Team`,
+                          `Dear ${selectedBooking.guestName},\n\nYour booking at Hindukush Sarai Chitral has been confirmed.\n\nBooking Details:\n- Booking ID: ${selectedBooking.bookingReference}\n- Check-in: ${format(selectedBooking.checkIn, "MMMM d, yyyy")}\n- Check-out: ${format(selectedBooking.checkOut, "MMMM d, yyyy")}\n- Accommodation: ${selectedBooking.roomType}\n- Total Amount: ${selectedBooking.currency === "PKR" ? "Rs" : "$"}${selectedBooking.totalAmount?.toLocaleString()}\n\nWe look forward to welcoming you with traditional mountain hospitality!\n\nBest regards,\nHindukush Sarai Chitral Team`,
                         )
                         setShowEmailDialog(true)
                       }}
@@ -2049,15 +2049,15 @@ export default function HotelAdminPage() {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor="hotel-name">Hotel Name</Label>
-                      <Input id="hotel-name" defaultValue="Hindukush Heights Chitral" />
+                      <Input id="hotel-name" defaultValue="Hindukush Sarai Chitral" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="hotel-email">Email</Label>
-                      <Input id="hotel-email" defaultValue="info@hindukushheights.com" />
+                      <Input id="hotel-email" defaultValue="hindukushsarai@gmail.com" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="hotel-phone">Phone</Label>
-                      <Input id="hotel-phone" defaultValue="+92 345 1234567" />
+                      <Input id="hotel-phone" defaultValue="+92 322 1848940" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="hotel-address">Address</Label>

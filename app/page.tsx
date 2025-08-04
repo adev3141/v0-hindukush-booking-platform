@@ -37,7 +37,7 @@ export default function Home() {
         <div className="container flex h-16 items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <Mountain className="h-6 w-6 text-emerald-600" />
-            <span className="text-xl font-semibold">Hindukush Heights Chitral</span>
+            <span className="text-xl font-semibold">Hindukush Sarai Chitral</span>
           </Link>
           <nav className="hidden md:flex gap-6">
             <Link href="/" className="text-sm font-medium hover:underline underline-offset-4">
@@ -71,7 +71,7 @@ export default function Home() {
             {/* Method 1: Using existing blob URL (current approach) */}
             <Image
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/sarai.%20facade.jpg-7hzULkTc5N2t1aU3fsQ9bex9jIZiRX.jpeg"
-              alt="Hindukush Heights Chitral Hotel Facade with Mountain View"
+              alt="Hindukush Sarai Chitral Hotel Facade with Tirch mir View"
               fill
               className="object-cover brightness-[0.7]"
               priority
@@ -82,7 +82,7 @@ export default function Home() {
               Experience Heritage Hospitality in Chitral
             </h1>
             <p className="mt-6 max-w-2xl text-lg">
-              Nestled in the heart of Chitral, Hindukush Heights offers authentic mountain hospitality with modern
+              Nestled in the heart of Chitral, Hindukush Sarai offers authentic mountain hospitality with modern
               comfort. From budget-friendly dormitories to premium suites, we welcome every traveler with warmth and
               tradition.
             </p>
@@ -127,7 +127,7 @@ export default function Home() {
           <div className="container">
             <h2 className="text-3xl font-bold tracking-tight text-center mb-12">Our Accommodation</h2>
             <p className="text-center text-muted-foreground mb-12 max-w-3xl mx-auto">
-              From budget-conscious travelers to luxury seekers, Hindukush Heights Chitral offers diverse accommodation
+              From budget-conscious travelers to luxury seekers, Hindukush Sarai Chitral offers diverse accommodation
               options that blend traditional mountain hospitality with modern amenities. Each space is designed to
               provide comfort while celebrating our rich cultural heritage.
             </p>
@@ -275,7 +275,7 @@ export default function Home() {
                 {/* Method 3: Conference room image */}
                 <Image
                   src="/images/conference-room.png"
-                  alt="Conference Room at Hindukush Heights Chitral"
+                  alt="Conference Room at Hindukush Sarai Chitral"
                   fill
                   className="object-cover"
                 />
@@ -353,9 +353,9 @@ export default function Home() {
           <div className="container">
             <div className="grid gap-12 lg:grid-cols-2 items-center">
               <div>
-                <h2 className="text-3xl font-bold tracking-tight">About Hindukush Heights Chitral</h2>
+                <h2 className="text-3xl font-bold tracking-tight">About Hindukush Sarai Chitral</h2>
                 <p className="mt-4 text-muted-foreground">
-                  Hindukush Heights Chitral is a heritage hotel that celebrates the rich cultural traditions of the
+                  Hindukush Sarai Chitral is a heritage hotel that celebrates the rich cultural traditions of the
                   Hindukush region while providing modern comfort and convenience. Our hotel offers a unique blend of
                   traditional mountain hospitality and contemporary amenities, welcoming travelers from all walks of
                   life.
@@ -381,7 +381,7 @@ export default function Home() {
               <div className="relative h-[400px] rounded-lg overflow-hidden">
                 <Image
                   src="/images/hotel-exterior.png"
-                  alt="Hindukush Heights Chitral Hotel Exterior"
+                  alt="Hindukush Sarai Chitral Hotel Exterior"
                   fill
                   className="object-cover"
                 />
@@ -396,7 +396,7 @@ export default function Home() {
               <div>
                 <h2 className="text-3xl font-bold tracking-tight">Facilities & Services</h2>
                 <p className="mt-4 text-muted-foreground">
-                  Hindukush Heights Chitral is strategically located to provide easy access to all essential services
+                  Hindukush Sarai Chitral is strategically located to provide easy access to all essential services
                   and attractions. Our comprehensive facilities ensure that your stay is comfortable, convenient, and
                   memorable.
                 </p>
@@ -472,7 +472,7 @@ export default function Home() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="relative h-[200px] rounded-lg overflow-hidden">
-                  <Image src="/images/garden-view.png" alt="Hindukush Heights Garden" fill className="object-cover" />
+                  <Image src="/images/garden-view.png" alt="Hindukush Sarai Garden" fill className="object-cover" />
                 </div>
                 <div className="relative h-[200px] rounded-lg overflow-hidden">
                   <Image src="/images/park-view.png" alt="Adjacent Park" fill className="object-cover" />
@@ -494,7 +494,7 @@ export default function Home() {
               <div>
                 <h2 className="text-3xl font-bold tracking-tight">Beautiful Garden & Park Access</h2>
                 <p className="mt-4 text-muted-foreground">
-                  Hindukush Heights Chitral is uniquely situated with its own private garden and adjacent to a public
+                  Hindukush Sarai Chitral is uniquely situated with its own private garden and adjacent to a public
                   park, offering a peaceful retreat from the bustle of travel.
                 </p>
                 <p className="mt-4 text-muted-foreground">
@@ -622,7 +622,13 @@ export default function Home() {
               <TestimonialCard
                 name="Faisal Ahmed"
                 location="Lahore, Pakistan"
-                quote="As a corporate retreat venue, Hindukush Heights exceeded our expectations. The location provided security and the amenities were perfect for our team-building activities."
+                quote="As a corporate retreat venue, Hindukush Sarai exceeded our expectations. The location provided security and the amenities were perfect for our team-building activities."
+                rating={4}
+              />
+              <TestimonialCard
+                name="Ali Hassan, Co Founder of 3Musafir"
+                location="Lahore, Pakistan"
+                quote="We executed our yearly flagship retreat at Sarai and we had a 10/10 experience. From Hotel staff to the property itself is one of the best in Chitral."
                 rating={4}
               />
             </div>
@@ -636,7 +642,7 @@ export default function Home() {
                 <h2 className="text-3xl font-bold tracking-tight">Contact Us & Getting Here</h2>
                 <p className="mt-4 text-muted-foreground">
                   Have questions or need assistance with your booking? Our team is here to help you plan your perfect
-                  stay at Hindukush Heights Chitral.
+                  stay at Hindukush Sarai Chitral.
                 </p>
                 <div className="mt-8 space-y-4">
                   <div className="flex items-center gap-3">
@@ -717,7 +723,7 @@ export default function Home() {
               <div className="relative h-[400px] rounded-lg overflow-hidden">
                 <Image
                   src="/images/location-map.png"
-                  alt="Map location of Hindukush Heights Chitral"
+                  alt="Map location of Hindukush Sarai Chitral"
                   fill
                   className="object-cover"
                 />
@@ -732,7 +738,7 @@ export default function Home() {
             <div>
               <div className="flex items-center gap-2 mb-4">
                 <Mountain className="h-5 w-5 text-emerald-600" />
-                <span className="text-lg font-semibold">Hindukush Heights Chitral</span>
+                <span className="text-lg font-semibold">Hindukush Sarai Chitral</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Experience authentic mountain hospitality in Chitral. From budget dormitories to luxury suites, we
@@ -817,7 +823,7 @@ export default function Home() {
             </div>
           </div>
           <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-            <p>© {new Date().getFullYear()} Hindukush Heights Chitral. All rights reserved.</p>
+            <p>© {new Date().getFullYear()} Hindukush Sarai Chitral. All rights reserved.</p>
             <div className="mt-2">
               <Button variant="link" size="sm" asChild>
                 <Link href="/hotel-admin">Hotel Staff Login</Link>
