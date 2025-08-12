@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
+import { CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
+
 // Simple date formatting function to replace date-fns
 const format = (date: Date, formatStr: string) => {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
@@ -42,8 +45,6 @@ const format = (date: Date, formatStr: string) => {
   // Default fallback
   return date.toLocaleDateString()
 }
-import { cn } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
 
 interface BookingData {
   firstName: string
@@ -59,11 +60,27 @@ interface BookingData {
   purposeOfVisit: string
 }
 
+interface RoomType {
+  type: string
+  basePrice: number
+  available: boolean
+  count: number
+}
+
+interface RoomPricing {
+  room_type: string
+  base_price: number
+  currency: string
+}
+
 export function MultiStepBooking() {
   const [currentStep, setCurrentStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [checkInDate, setCheckInDate] = useState<Date>()
   const [checkOutDate, setCheckOutDate] = useState<Date>()
+  const [roomTypes, setRoomTypes] = useState<RoomType[]>([])
+  const [roomPricing, setRoomPricing] = useState<RoomPricing[]>([])
+  const [loadingRoomTypes, setLoadingRoomTypes] = useState(true)
   const { toast } = useToast()
 
   const [bookingData, setBookingData] = useState<BookingData>({
@@ -79,6 +96,158 @@ export function MultiStepBooking() {
     specialRequests: "",
     purposeOfVisit: "",
   })
+
+  // Fetch room types and pricing from database
+  useEffect(() => {
+    const fetchRoomData = async () => {
+      try {
+        setLoadingRoomTypes(true)
+
+        // Fetch rooms to get available room types
+        const roomsResponse = await fetch("/api/rooms", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-cache",
+        })
+
+        if (!roomsResponse.ok) {
+          throw new Error("Failed to fetch rooms")
+        }
+
+        const roomsData = await roomsResponse.json()
+        const rooms = roomsData.rooms || roomsData || []
+
+        // Fetch pricing data
+        const pricingResponse = await fetch("/api/pricing", {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-cache",
+        })
+
+        let pricing: RoomPricing[] = []
+        if (pricingResponse.ok) {
+          const pricingData = await pricingResponse.json()
+          pricing = pricingData.pricing || pricingData || []
+        }
+
+        // Group rooms by type and count available ones
+        const roomTypeMap = new Map<string, { count: number; available: number }>()
+
+        rooms.forEach((room: any) => {
+          if (!roomTypeMap.has(room.type)) {
+            roomTypeMap.set(room.type, { count: 0, available: 0 })
+          }
+          const typeData = roomTypeMap.get(room.type)!
+          typeData.count++
+          if (room.status === "available") {
+            typeData.available++
+          }
+        })
+
+        // Create room types array with pricing
+        const availableRoomTypes: RoomType[] = Array.from(roomTypeMap.entries()).map(([type, data]) => {
+          const pricingInfo = pricing.find((p) => p.room_type === type)
+          return {
+            type,
+            basePrice: pricingInfo?.base_price || getDefaultPrice(type),
+            available: data.available > 0,
+            count: data.available,
+          }
+        })
+
+        // If no rooms in database, provide default room types
+        if (availableRoomTypes.length === 0) {
+          const defaultRoomTypes: RoomType[] = [
+            { type: "Budget Room", basePrice: 4000, available: true, count: 5 },
+            { type: "Standard Room", basePrice: 6000, available: true, count: 8 },
+            { type: "Deluxe Room", basePrice: 8000, available: true, count: 6 },
+            { type: "Family Suite", basePrice: 12000, available: true, count: 3 },
+          ]
+          setRoomTypes(defaultRoomTypes)
+        } else {
+          setRoomTypes(availableRoomTypes)
+        }
+
+        setRoomPricing(pricing)
+      } catch (error) {
+        console.error("Error fetching room data:", error)
+        // Fallback to default room types if API fails
+        const defaultRoomTypes: RoomType[] = [
+          { type: "Budget Room", basePrice: 4000, available: true, count: 5 },
+          { type: "Standard Room", basePrice: 6000, available: true, count: 8 },
+          { type: "Deluxe Room", basePrice: 8000, available: true, count: 6 },
+          { type: "Family Suite", basePrice: 12000, available: true, count: 3 },
+        ]
+        setRoomTypes(defaultRoomTypes)
+
+        toast({
+          title: "Warning",
+          description: "Using default room types. Please check your connection.",
+          variant: "destructive",
+        })
+      } finally {
+        setLoadingRoomTypes(false)
+      }
+    }
+
+    fetchRoomData()
+  }, [toast])
+
+  // Check availability when dates change
+  useEffect(() => {
+    if (checkInDate && checkOutDate) {
+      checkRoomAvailability()
+    }
+  }, [checkInDate, checkOutDate])
+
+  const getDefaultPrice = (roomType: string): number => {
+    const defaultPrices: { [key: string]: number } = {
+      "Budget Room": 4000,
+      "Standard Room": 6000,
+      "Deluxe Room": 8000,
+      "Family Suite": 12000,
+      "Executive Suite": 15000,
+      "Presidential Suite": 25000,
+    }
+    return defaultPrices[roomType] || 6000
+  }
+
+  const checkRoomAvailability = async () => {
+    if (!checkInDate || !checkOutDate) return
+
+    try {
+      const checkInStr = format(checkInDate, "yyyy-MM-dd")
+      const checkOutStr = format(checkOutDate, "yyyy-MM-dd")
+
+      const response = await fetch(`/api/availability?checkIn=${checkInStr}&checkOut=${checkOutStr}`, {
+        method: "GET",
+        headers: { "Content-Type": "application/json" },
+        cache: "no-cache",
+      })
+
+      if (response.ok) {
+        const availabilityData = await response.json()
+        const availableRooms = availabilityData.availableRooms || []
+
+        // Update room types with real-time availability
+        setRoomTypes((prevTypes) =>
+          prevTypes.map((roomType) => {
+            const availableCount = availableRooms.filter(
+              (room: any) => room.type === roomType.type && room.status === "available",
+            ).length
+
+            return {
+              ...roomType,
+              available: availableCount > 0,
+              count: availableCount,
+            }
+          }),
+        )
+      }
+    } catch (error) {
+      console.error("Error checking availability:", error)
+    }
+  }
 
   const updateBookingData = (field: keyof BookingData, value: string | number) => {
     setBookingData((prev) => ({ ...prev, [field]: value }))
@@ -137,15 +306,12 @@ export function MultiStepBooking() {
   }
 
   const calculateTotal = () => {
-    if (!checkInDate || !checkOutDate) return 0
+    if (!checkInDate || !checkOutDate || !bookingData.roomType) return 0
+
     const nights = Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
-    const roomPrices: { [key: string]: number } = {
-      "Deluxe Room": 8000,
-      "Standard Room": 6000,
-      "Budget Room": 4000,
-      "Family Suite": 12000,
-    }
-    const basePrice = roomPrices[bookingData.roomType] || 6000
+    const selectedRoomType = roomTypes.find((rt) => rt.type === bookingData.roomType)
+    const basePrice = selectedRoomType?.basePrice || 6000
+
     return basePrice * nights
   }
 
@@ -168,7 +334,6 @@ export function MultiStepBooking() {
 
       console.log("📤 Submitting booking data:", submissionData)
 
-      // Fix: Use absolute URL to ensure correct API endpoint
       const apiUrl = window.location.origin + "/api/bookings"
       console.log("📡 API URL:", apiUrl)
 
@@ -178,7 +343,6 @@ export function MultiStepBooking() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(submissionData),
-        // Fix: Add these options to handle potential network issues
         cache: "no-cache",
         credentials: "same-origin",
       })
@@ -341,17 +505,38 @@ export function MultiStepBooking() {
             </div>
             <div>
               <Label htmlFor="roomType">Room Type *</Label>
-              <Select value={bookingData.roomType} onValueChange={(value) => updateBookingData("roomType", value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select room type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Budget Room">Budget Room - PKR 4,000/night</SelectItem>
-                  <SelectItem value="Standard Room">Standard Room - PKR 6,000/night</SelectItem>
-                  <SelectItem value="Deluxe Room">Deluxe Room - PKR 8,000/night</SelectItem>
-                  <SelectItem value="Family Suite">Family Suite - PKR 12,000/night</SelectItem>
-                </SelectContent>
-              </Select>
+              {loadingRoomTypes ? (
+                <div className="flex items-center justify-center p-4 border rounded-md">
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <span className="text-sm text-muted-foreground">Loading room types...</span>
+                </div>
+              ) : (
+                <Select value={bookingData.roomType} onValueChange={(value) => updateBookingData("roomType", value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select room type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {roomTypes.map((roomType) => (
+                      <SelectItem key={roomType.type} value={roomType.type} disabled={!roomType.available}>
+                        <div className="flex items-center justify-between w-full">
+                          <span>
+                            {roomType.type} - PKR {roomType.basePrice.toLocaleString()}/night
+                          </span>
+                          {!roomType.available && <span className="text-xs text-red-500 ml-2">(Not Available)</span>}
+                          {roomType.available && roomType.count <= 3 && (
+                            <span className="text-xs text-orange-500 ml-2">({roomType.count} left)</span>
+                          )}
+                        </div>
+                      </SelectItem>
+                    ))}
+                    {roomTypes.length === 0 && (
+                      <SelectItem value="" disabled>
+                        No room types available
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div>
               <Label htmlFor="guests">Number of Guests</Label>
