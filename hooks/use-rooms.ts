@@ -1,61 +1,89 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import type { Room } from "@/lib/supabase"
+import { useState, useEffect, useCallback } from "react"
+import { toast } from "@/components/ui/use-toast"
+import { RoomService } from "@/lib/booking-service"
 
 export function useRooms() {
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [rooms, setRooms] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
 
-  const fetchRooms = async () => {
-    console.log("🔍 Fetching rooms...")
-    setLoading(true)
-    setError(null)
-
+  const fetchRooms = useCallback(async () => {
     try {
-      const response = await fetch("/api/rooms", {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        cache: "no-cache",
-      })
-
-      console.log("📡 Rooms API response status:", response.status)
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("❌ Failed to fetch rooms:", errorData)
-        throw new Error(errorData.error || "Failed to fetch rooms")
-      }
-
-      const data = await response.json()
-      console.log("📋 Rooms data received:", data)
-
-      const roomsArray = data.rooms || data || []
-      setRooms(roomsArray)
-      console.log(`✅ Successfully loaded ${roomsArray.length} rooms`)
+      setLoading(true)
+      const roomsData = await RoomService.getRooms()
+      setRooms(roomsData)
+      setError(null)
     } catch (err) {
-      console.error("❌ Error fetching rooms:", err)
-      setError(err instanceof Error ? err.message : "Failed to fetch rooms")
+      console.error("Error fetching rooms:", err)
+      setError(err.message || "Failed to fetch rooms")
+      toast({
+        title: "Error",
+        description: "Failed to load rooms. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
     fetchRooms()
+  }, [fetchRooms])
+
+  const createRoom = useCallback(async (roomData) => {
+    try {
+      const newRoom = await RoomService.createRoom(roomData)
+      setRooms((prevRooms) => [...prevRooms, newRoom])
+      return newRoom
+    } catch (err) {
+      console.error("Error creating room:", err)
+      throw err
+    }
   }, [])
 
-  const refetch = () => {
-    fetchRooms()
-  }
+  const updateRoom = useCallback(async (id, updates) => {
+    try {
+      const updatedRoom = await RoomService.updateRoom(id, updates)
+      setRooms((prevRooms) => prevRooms.map((room) => (room.id === id ? { ...room, ...updatedRoom } : room)))
+      return updatedRoom
+    } catch (err) {
+      console.error("Error updating room:", err)
+      throw err
+    }
+  }, [])
+
+  const deleteRoom = useCallback(async (id) => {
+    try {
+      await RoomService.deleteRoom(id)
+      setRooms((prevRooms) => prevRooms.filter((room) => room.id !== id))
+      return true
+    } catch (err) {
+      console.error("Error deleting room:", err)
+      throw err
+    }
+  }, [])
+
+  const updateRoomStatus = useCallback(async (id, status) => {
+    try {
+      const updatedRoom = await RoomService.updateRoomStatus(id, status)
+      setRooms((prevRooms) => prevRooms.map((room) => (room.id === id ? { ...room, status } : room)))
+      return updatedRoom
+    } catch (err) {
+      console.error("Error updating room status:", err)
+      throw err
+    }
+  }, [])
 
   return {
     rooms,
     loading,
     error,
-    refetch,
+    fetchRooms,
+    createRoom,
+    updateRoom,
+    deleteRoom,
+    updateRoomStatus,
   }
 }
