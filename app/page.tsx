@@ -79,7 +79,7 @@ export default function Home() {
           </div>
           <div className="container relative z-10 flex flex-col items-center text-center text-white">
             <h1 className="text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Experience Heritage Hospitality in Chitral
+               Heritage Hospitality in Chitral
             </h1>
             <p className="mt-6 max-w-2xl text-lg">
               Nestled in the heart of Chitral, Hindukush Sarai offers authentic mountain hospitality with modern
