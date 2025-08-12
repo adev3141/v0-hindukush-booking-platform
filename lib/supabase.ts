@@ -9,10 +9,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Server-side client with service role key
-export const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+// Server-side client with service role key (only use when needed)
+export const supabaseAdmin = createClient(supabaseUrl, process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey)
 
-// Types for our database tables
+// Updated types to match the database schema
 export interface Room {
   id: string
   number: string
@@ -32,18 +32,21 @@ export interface Booking {
   guest_name: string
   email: string
   phone: string
+  nationality?: string
   check_in: string
   check_out: string
   room_id?: string
   room_type: string
   room_number?: string
   guests: number
+  nights: number
   total_amount: number
   currency: string
-  payment_method: "credit-card" | "bank-transfer" | "cash"
+  special_requests?: string
+  purpose_of_visit?: string
+  payment_method?: string
   payment_status: "pending" | "paid" | "failed" | "refunded"
   booking_status: "pending" | "confirmed" | "checked-in" | "checked-out" | "cancelled"
-  special_requests?: string
   created_at: string
   updated_at: string
 }

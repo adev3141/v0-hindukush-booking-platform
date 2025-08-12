@@ -4,7 +4,7 @@ ALTER TABLE IF EXISTS public.bookings ENABLE ROW LEVEL SECURITY;
 -- Drop existing table if it exists
 DROP TABLE IF EXISTS public.bookings;
 
--- Create bookings table
+-- Create bookings table with fields that match frontend and API
 CREATE TABLE public.bookings (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     booking_reference VARCHAR(20) UNIQUE NOT NULL,
@@ -18,11 +18,12 @@ CREATE TABLE public.bookings (
     guests INTEGER DEFAULT 1,
     nights INTEGER DEFAULT 1,
     total_amount DECIMAL(10,2) DEFAULT 0,
+    currency VARCHAR(10) DEFAULT 'PKR',
     special_requests TEXT,
-    emergency_name VARCHAR(255),
-    emergency_phone VARCHAR(50),
-    status VARCHAR(20) DEFAULT 'pending',
+    purpose_of_visit VARCHAR(100),
+    payment_method VARCHAR(50),
     payment_status VARCHAR(20) DEFAULT 'pending',
+    booking_status VARCHAR(20) DEFAULT 'confirmed',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -35,10 +36,15 @@ CREATE POLICY "Allow public insert" ON public.bookings
 CREATE POLICY "Allow public select" ON public.bookings
     FOR SELECT USING (true);
 
+-- Create RLS policy to allow public update (for booking modifications)
+CREATE POLICY "Allow public update" ON public.bookings
+    FOR UPDATE USING (true);
+
 -- Create index for better performance
 CREATE INDEX idx_bookings_reference ON public.bookings(booking_reference);
 CREATE INDEX idx_bookings_email ON public.bookings(email);
 CREATE INDEX idx_bookings_dates ON public.bookings(check_in, check_out);
+CREATE INDEX idx_bookings_status ON public.bookings(booking_status);
 
 -- Insert some sample data for testing
 INSERT INTO public.bookings (
@@ -53,7 +59,9 @@ INSERT INTO public.bookings (
     guests,
     nights,
     total_amount,
-    status,
+    currency,
+    purpose_of_visit,
+    booking_status,
     payment_status
 ) VALUES (
     'HK123456',
@@ -67,6 +75,8 @@ INSERT INTO public.bookings (
     2,
     2,
     16000.00,
+    'PKR',
+    'Tourism',
     'confirmed',
     'paid'
 );

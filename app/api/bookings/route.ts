@@ -120,24 +120,27 @@ export async function POST(request: NextRequest) {
     const basePrice = roomPrices[body.roomType] || 6000
     const totalAmount = basePrice * nights
 
-    // Prepare booking data for database - MATCH THE EXISTING SCHEMA
+    // Prepare booking data for database - MATCH THE UPDATED SCHEMA
     const bookingData = {
       booking_reference: bookingReference,
       guest_name: `${body.firstName} ${body.lastName}`,
       email: body.email,
       phone: body.phone,
+      nationality: body.nationality || null,
       check_in: body.checkIn,
       check_out: body.checkOut,
       room_type: body.roomType,
       guests: body.guests || 1,
+      nights: nights,
       total_amount: totalAmount,
       currency: "PKR",
-      payment_status: "pending",
-      booking_status: "confirmed",
       special_requests: body.specialRequests || null,
       purpose_of_visit: body.purposeOfVisit || null,
       payment_method: null,
+      payment_status: "pending",
+      booking_status: "confirmed",
       created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     }
 
     console.log("📋 Prepared booking data:", JSON.stringify(bookingData, null, 2))
