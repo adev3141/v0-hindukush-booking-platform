@@ -1,5 +1,7 @@
 "use client"
 
+import { DialogFooter } from "@/components/ui/dialog"
+
 import { useState } from "react"
 import Link from "next/link"
 import { format } from "date-fns"
@@ -23,6 +25,7 @@ import {
   Edit,
   Trash2,
   Loader2,
+  RefreshCw,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -34,19 +37,36 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { MultiStepBooking } from "@/components/multi-step-booking"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
 import { useBookings } from "@/hooks/use-bookings"
 import { useInquiries } from "@/hooks/use-inquiries"
 import { useRooms } from "@/hooks/use-rooms"
+
+// Transform booking data to match UI expectations
+const transformBookingData = (booking: any) => ({
+  id: booking.id,
+  bookingReference: booking.booking_reference,
+  guestName: booking.guest_name,
+  email: booking.email,
+  phone: booking.phone,
+  nationality: booking.nationality,
+  checkIn: booking.check_in,
+  checkOut: booking.check_out,
+  roomType: booking.room_type,
+  guests: booking.guests,
+  nights: booking.nights,
+  totalAmount: booking.total_amount,
+  currency: booking.currency,
+  specialRequests: booking.special_requests,
+  purposeOfVisit: booking.purpose_of_visit,
+  paymentMethod: booking.payment_method,
+  paymentStatus: booking.payment_status,
+  status: booking.booking_status,
+  createdAt: booking.created_at,
+  updatedAt: booking.updated_at,
+})
 
 // Room availability data - this should come from the database
 const roomAvailability = {
@@ -61,20 +81,50 @@ const roomAvailability = {
 }
 
 export default function HotelAdminPage() {
+  const {
+    bookings: rawBookings,
+    loading: bookingsLoading,
+    error: bookingsError,
+    refetch: refetchBookings,
+  } = useBookings()
+  const { rooms, loading: roomsLoading, error: roomsError, refetch: refetchRooms } = useRooms()
+  const { inquiries, loading: inquiriesLoading, error: inquiriesError, refetch: refetchInquiries } = useInquiries()
+
+  // Transform bookings data
+  const bookings = rawBookings.map(transformBookingData)
+
+  console.log("🏨 Admin Dashboard Data:")
+  console.log("Raw bookings:", rawBookings)
+  console.log("Transformed bookings:", bookings)
+  console.log("Rooms:", rooms)
+  console.log("Inquiries:", inquiries)
+
   const [activeTab, setActiveTab] = useState("dashboard")
   const [showNewBookingForm, setShowNewBookingForm] = useState(false)
-  const [selectedBooking, setSelectedBooking] = useState(null)
-  const [selectedInquiry, setSelectedInquiry] = useState(null)
+  const [selectedBooking, setSelectedBooking] = useState<any>(null)
+  const [selectedInquiry, setSelectedInquiry] = useState<any>(null)
   const [searchQuery, setSearchQuery] = useState("")
+  const [selectedRoom, setSelectedRoom] = useState<any>(null)
+
+  // Calculate dashboard metrics
+  const totalBookings = bookings.length
+  const totalRevenue = bookings.reduce((sum, booking) => sum + (booking.totalAmount || 0), 0)
+  const occupiedRooms = rooms.filter((room) => room.status === "occupied").length
+  const pendingInquiries = inquiries.filter((inquiry) => inquiry.status === "new").length
 
   // Use the hooks to get real data from Supabase
-  const { bookings, loading: bookingsLoading, createBooking, updateBooking, cancelBooking } = useBookings()
-  const { inquiries, loading: inquiriesLoading, replyToInquiry } = useInquiries()
-  const { rooms, loading: roomsLoading, createRoom, updateRoom, deleteRoom } = useRooms()
+  const {
+    bookings: oldBookings,
+    loading: oldBookingsLoading,
+    createBooking,
+    updateBooking,
+    cancelBooking,
+  } = useBookings()
+  const { inquiries: oldInquiries, loading: oldInquiriesLoading, replyToInquiry } = useInquiries()
+  const { rooms: oldRooms, loading: oldRoomsLoading, createRoom, updateRoom, deleteRoom } = useRooms()
 
   // Room management state
   const [showRoomManagement, setShowRoomManagement] = useState(false)
-  const [selectedRoom, setSelectedRoom] = useState(null)
   const [showAddRoomDialog, setShowAddRoomDialog] = useState(false)
   const [showEditRoomDialog, setShowEditRoomDialog] = useState(false)
   const [showDeleteRoomDialog, setShowDeleteRoomDialog] = useState(false)
@@ -157,7 +207,7 @@ export default function HotelAdminPage() {
   const [cancelReason, setCancelReason] = useState("")
 
   // Transform database booking data to match UI expectations
-  const transformBookingData = (dbBooking) => {
+  const transformBookingDataOld = (dbBooking) => {
     if (!dbBooking) return null
 
     return {
@@ -180,7 +230,7 @@ export default function HotelAdminPage() {
   }
 
   // Transform bookings data for UI
-  const transformedBookings = bookings?.map(transformBookingData).filter(Boolean) || []
+  const transformedBookings = oldBookings?.map(transformBookingDataOld).filter(Boolean) || []
 
   const filteredBookings = transformedBookings.filter(
     (booking) =>
@@ -546,10 +596,79 @@ export default function HotelAdminPage() {
     setFormErrors({})
   }
 
+  const getStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      confirmed: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      "checked-in": "bg-blue-100 text-blue-800",
+      "checked-out": "bg-gray-100 text-gray-800",
+      cancelled: "bg-red-100 text-red-800",
+    }
+
+    return <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>{status}</Badge>
+  }
+
+  const getPaymentStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      paid: "bg-green-100 text-green-800",
+      pending: "bg-yellow-100 text-yellow-800",
+      failed: "bg-red-100 text-red-800",
+      refunded: "bg-gray-100 text-gray-800",
+    }
+
+    return <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>{status}</Badge>
+  }
+
+  const getRoomStatusBadge = (status: string) => {
+    const statusColors: { [key: string]: string } = {
+      available: "bg-green-100 text-green-800",
+      occupied: "bg-red-100 text-red-800",
+      maintenance: "bg-yellow-100 text-yellow-800",
+      "out-of-order": "bg-gray-100 text-gray-800",
+    }
+
+    return <Badge className={statusColors[status] || "bg-gray-100 text-gray-800"}>{status}</Badge>
+  }
+
+  const handleRefreshAll = () => {
+    console.log("🔄 Refreshing all data...")
+    refetchBookings()
+    refetchRooms()
+    refetchInquiries()
+  }
+
+  if (bookingsLoading || roomsLoading || inquiriesLoading) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <RefreshCw className="h-8 w-8 animate-spin mx-auto mb-4" />
+            <p>Loading dashboard data...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (bookingsError || roomsError || inquiriesError) {
+    return (
+      <div className="container mx-auto p-6">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Error Loading Dashboard</h1>
+          <p className="text-red-600 mb-4">{bookingsError || roomsError || inquiriesError}</p>
+          <Button onClick={handleRefreshAll}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   // Debug logging
   console.log("=== ADMIN PAGE DEBUG ===")
   console.log("Bookings loading:", bookingsLoading)
-  console.log("Raw bookings from hook:", bookings)
+  console.log("Raw bookings from hook:", oldBookings)
   console.log("Transformed bookings:", transformedBookings)
   console.log("Filtered bookings:", filteredBookings)
 
@@ -600,7 +719,9 @@ export default function HotelAdminPage() {
               >
                 <Inbox className="h-5 w-5" />
                 <span>Inquiries</span>
-                <Badge className="ml-auto bg-red-500">{inquiries?.filter((i) => i.status === "new").length || 0}</Badge>
+                <Badge className="ml-auto bg-red-500">
+                  {oldInquiries?.filter((i) => i.status === "new").length || 0}
+                </Badge>
               </button>
             </li>
             <li>
@@ -702,7 +823,7 @@ export default function HotelAdminPage() {
                   <CardContent>
                     <div className="text-3xl font-bold">{transformedBookings?.length || 0}</div>
                     <p className="text-xs text-muted-foreground mt-1">
-                      {bookingsLoading ? "Loading..." : "Real-time data"}
+                      {oldBookingsLoading ? "Loading..." : "Real-time data"}
                     </p>
                   </CardContent>
                 </Card>
@@ -722,7 +843,9 @@ export default function HotelAdminPage() {
                     <CardTitle className="text-sm font-medium text-muted-foreground">New Inquiries</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="text-3xl font-bold">{inquiries?.filter((i) => i.status === "new").length || 0}</div>
+                    <div className="text-3xl font-bold">
+                      {oldInquiries?.filter((i) => i.status === "new").length || 0}
+                    </div>
                     <p className="text-xs text-muted-foreground mt-1">Requires attention</p>
                   </CardContent>
                 </Card>
@@ -749,7 +872,7 @@ export default function HotelAdminPage() {
                     <CardDescription>Latest bookings from database</CardDescription>
                   </CardHeader>
                   <CardContent>
-                    {bookingsLoading ? (
+                    {oldBookingsLoading ? (
                       <div className="flex items-center justify-center py-8">
                         <Loader2 className="h-8 w-8 animate-spin" />
                         <span className="ml-2">Loading bookings...</span>
@@ -848,7 +971,7 @@ export default function HotelAdminPage() {
                   <CardDescription>Check-ins, check-outs, and events for today</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  {bookingsLoading ? (
+                  {oldBookingsLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <Loader2 className="h-8 w-8 animate-spin" />
                       <span className="ml-2">Loading schedule...</span>
@@ -915,7 +1038,7 @@ export default function HotelAdminPage() {
                 </Button>
               </div>
 
-              {bookingsLoading ? (
+              {oldBookingsLoading ? (
                 <Card>
                   <CardContent className="flex items-center justify-center py-12">
                     <Loader2 className="h-8 w-8 animate-spin mr-2" />
@@ -1371,7 +1494,8 @@ export default function HotelAdminPage() {
                 <TabsList>
                   <TabsTrigger value="all">All</TabsTrigger>
                   <TabsTrigger value="new">
-                    New <Badge className="ml-1 bg-red-500">{inquiries?.filter((i) => i.status === "new").length}</Badge>
+                    New{" "}
+                    <Badge className="ml-1 bg-red-500">{oldInquiries?.filter((i) => i.status === "new").length}</Badge>
                   </TabsTrigger>
                   <TabsTrigger value="replied">Replied</TabsTrigger>
                 </TabsList>
@@ -1390,7 +1514,7 @@ export default function HotelAdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {inquiries?.map((inquiry) => (
+                          {oldInquiries?.map((inquiry) => (
                             <tr key={inquiry.id} className="border-b hover:bg-muted/50">
                               <td className="p-4 font-medium">{inquiry.id}</td>
                               <td className="p-4">{inquiry.name}</td>
@@ -1427,7 +1551,7 @@ export default function HotelAdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {inquiries
+                          {oldInquiries
                             ?.filter((inquiry) => inquiry.status === "new")
                             .map((inquiry) => (
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
@@ -1461,7 +1585,7 @@ export default function HotelAdminPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {inquiries
+                          {oldInquiries
                             ?.filter((inquiry) => inquiry.status === "replied")
                             .map((inquiry) => (
                               <tr key={inquiry.id} className="border-b hover:bg-muted/50">
@@ -1683,7 +1807,7 @@ export default function HotelAdminPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {rooms?.map((room) => (
+                      {oldRooms?.map((room) => (
                         <tr key={room.id} className="border-b hover:bg-muted/50">
                           <td className="p-4 font-medium">{room.number}</td>
                           <td className="p-4">{getRoomTypeLabel(room.type)}</td>
@@ -1924,7 +2048,7 @@ export default function HotelAdminPage() {
               </Card>
 
               <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {rooms?.map((room) => (
+                {oldRooms?.map((room) => (
                   <Card key={room.id}>
                     <CardHeader>
                       <div className="flex justify-between items-start">
