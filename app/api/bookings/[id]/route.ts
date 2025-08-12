@@ -1,10 +1,42 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { BookingService } from "@/lib/booking-service"
+import { supabaseAdmin } from "@/lib/supabase" // service role client
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+const TABLE = "bookings"
+
+// Only allow known columns to be updated
+const ALLOWED_UPDATE_FIELDS = new Set([
+  "guest_name",
+  "email",
+  "phone",
+  "nationality",
+  "check_in",
+  "check_out",
+  "room_id",
+  "room_type",
+  "room_number",
+  "guests",
+  "nights",
+  "total_amount",
+  "currency",
+  "payment_method",
+  "payment_status",
+  "booking_status",
+  "special_requests",
+])
+
+function sanitizeUpdates(input: Record<string, any>) {
+  const out: Record<string, any> = {}
+  for (const [k, v] of Object.entries(input || {})) {
+    if (ALLOWED_UPDATE_FIELDS.has(k)) out[k] = v
+  }
+  return out
+}
+
+export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const booking = await BookingService.getBookingById(params.id)
-    return NextResponse.json({ success: true, booking })
+    const { data, error } = await supabaseAdmin.from(TABLE).select("*").eq("id", params.id).single()
+    if (error) throw error
+    return NextResponse.json({ success: true, booking: data })
   } catch (error) {
     console.error("Get booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to fetch booking" }, { status: 500 })
@@ -13,9 +45,22 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const updates = await request.json()
-    const booking = await BookingService.updateBooking(params.id, updates)
-    return NextResponse.json({ success: true, booking })
+    const raw = await request.json()
+    const updates = sanitizeUpdates(raw)
+
+    if (!updates || Object.keys(updates).length === 0) {
+      return NextResponse.json({ success: false, error: "No valid fields to update" }, { status: 400 })
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from(TABLE)
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq("id", params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json({ success: true, booking: data })
   } catch (error) {
     console.error("Update booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to update booking" }, { status: 500 })
@@ -25,10 +70,21 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const { searchParams } = new URL(request.url)
-    const reason = searchParams.get("reason")
+    const reason = searchParams.get("reason") || undefined
 
-    await BookingService.cancelBooking(params.id, reason || undefined)
-    return NextResponse.json({ success: true, message: "Booking cancelled successfully" })
+    const { data, error } = await supabaseAdmin
+      .from(TABLE)
+      .update({
+        booking_status: "cancelled",
+        special_requests: reason ? `Cancelled: ${reason}` : "Cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", params.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking: data })
   } catch (error) {
     console.error("Cancel booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to cancel booking" }, { status: 500 })
