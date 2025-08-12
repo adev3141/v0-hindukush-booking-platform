@@ -97,6 +97,7 @@ export function MultiStepBooking() {
     purposeOfVisit: "",
   })
 
+  // 🔍 THIS IS WHERE THE FALLBACK HAPPENS
   // Fetch room types and pricing from database
   useEffect(() => {
     const fetchRoomData = async () => {
@@ -155,8 +156,9 @@ export function MultiStepBooking() {
           }
         })
 
-        // If no rooms in database, provide default room types
+        // 🚨 FALLBACK MECHANISM: If no rooms in database, provide default room types
         if (availableRoomTypes.length === 0) {
+          console.log("📋 No rooms found in database, using default room types")
           const defaultRoomTypes: RoomType[] = [
             { type: "Budget Room", basePrice: 4000, available: true, count: 5 },
             { type: "Standard Room", basePrice: 6000, available: true, count: 8 },
@@ -171,7 +173,8 @@ export function MultiStepBooking() {
         setRoomPricing(pricing)
       } catch (error) {
         console.error("Error fetching room data:", error)
-        // Fallback to default room types if API fails
+        // 🚨 ANOTHER FALLBACK: If API fails, use default room types
+        console.log("⚠️ API failed, using default room types")
         const defaultRoomTypes: RoomType[] = [
           { type: "Budget Room", basePrice: 4000, available: true, count: 5 },
           { type: "Standard Room", basePrice: 6000, available: true, count: 8 },
@@ -200,6 +203,7 @@ export function MultiStepBooking() {
     }
   }, [checkInDate, checkOutDate])
 
+  // 🔍 DEFAULT PRICING FUNCTION
   const getDefaultPrice = (roomType: string): number => {
     const defaultPrices: { [key: string]: number } = {
       "Budget Room": 4000,

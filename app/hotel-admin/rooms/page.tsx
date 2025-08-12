@@ -411,14 +411,6 @@ export default function RoomsPage() {
 
       {/* Filters and Search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
-            <TabsTrigger value="all">All Rooms</TabsTrigger>
-            <TabsTrigger value="available">Available</TabsTrigger>
-            <TabsTrigger value="occupied">Occupied</TabsTrigger>
-            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
-          </TabsList>
-        </Tabs>
         <div className="relative w-full sm:w-auto">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
           <Input
@@ -430,150 +422,573 @@ export default function RoomsPage() {
         </div>
       </div>
 
-      {/* Room Content */}
-      {roomsLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin mr-2" />
-          <span>Loading rooms...</span>
-        </div>
-      ) : tabFilteredRooms.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg shadow border">
-          <Hotel className="h-16 w-16 mx-auto mb-4 text-gray-300" />
-          <p className="text-lg font-medium text-gray-900">No rooms found</p>
-          <p className="text-gray-500 mt-2">
-            {searchQuery ? "Try adjusting your search" : "Add your first room to get started"}
-          </p>
-          <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowAddRoomDialog(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add a Room
-          </Button>
-        </div>
-      ) : (
-        <TabsContent value={activeTab} className="mt-0">
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {tabFilteredRooms.map((room) => (
-              <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
-                <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 border-b">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        <BedDouble className="h-5 w-5 text-emerald-600" />
-                        Room {room.number}
-                      </CardTitle>
-                      <CardDescription className="font-medium">{getRoomTypeLabel(room.type)}</CardDescription>
-                    </div>
-                    {getRoomStatusBadge(room.status)}
-                  </div>
-                </CardHeader>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Capacity</p>
-                        <p className="font-semibold">{room.capacity} guests</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Floor</p>
-                        <p className="font-semibold">Floor {room.floor}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Price</p>
-                        <p className="font-semibold text-emerald-600">
-                          {getCurrencySymbol(room.currency)} {room.price || "N/A"}
-                          {room.type.includes("dormitory") ? "/bed" : "/night"}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Status</p>
-                        <Select
-                          defaultValue={room.status}
-                          onValueChange={(value) => handleRoomStatusChange(room.id, value)}
-                          disabled={isLoading}
-                        >
-                          <SelectTrigger className="h-8 mt-1">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="available">Available</SelectItem>
-                            <SelectItem value="occupied">Occupied</SelectItem>
-                            <SelectItem value="maintenance">Maintenance</SelectItem>
-                            <SelectItem value="out-of-order">Out of Order</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
+      {/* Tabs with Content */}
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:grid-cols-4">
+          <TabsTrigger value="all">All Rooms</TabsTrigger>
+          <TabsTrigger value="available">Available</TabsTrigger>
+          <TabsTrigger value="occupied">Occupied</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+        </TabsList>
 
-                    <div>
-                      <p className="text-sm text-gray-500 mb-2">Amenities</p>
-                      <div className="flex flex-wrap gap-1">
-                        {room.amenities?.slice(0, 4).map((amenity) => {
-                          const IconComponent = getAmenityIcon(amenity)
-                          return (
-                            <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
-                              <IconComponent className="h-3 w-3" />
-                              {amenity}
+        <TabsContent value="all" className="mt-6">
+          {roomsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>Loading rooms...</span>
+            </div>
+          ) : activeTab === "all" && tabFilteredRooms.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow border">
+              <Hotel className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-900">No rooms found</p>
+              <p className="text-gray-500 mt-2">
+                {searchQuery ? "Try adjusting your search" : "Add your first room to get started"}
+              </p>
+              <Button className="mt-4 bg-emerald-600 hover:bg-emerald-700" onClick={() => setShowAddRoomDialog(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add a Room
+              </Button>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tabFilteredRooms.map((room) => (
+                <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 border-b">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <BedDouble className="h-5 w-5 text-emerald-600" />
+                          Room {room.number}
+                        </CardTitle>
+                        <CardDescription className="font-medium">{getRoomTypeLabel(room.type)}</CardDescription>
+                      </div>
+                      {getRoomStatusBadge(room.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Capacity</p>
+                          <p className="font-semibold">{room.capacity} guests</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Floor</p>
+                          <p className="font-semibold">Floor {room.floor}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Price</p>
+                          <p className="font-semibold text-emerald-600">
+                            {getCurrencySymbol(room.currency)} {room.price || "N/A"}
+                            {room.type.includes("dormitory") ? "/bed" : "/night"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <Select
+                            defaultValue={room.status}
+                            onValueChange={(value) => handleRoomStatusChange(room.id, value)}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="h-8 mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="occupied">Occupied</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="out-of-order">Out of Order</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {room.amenities?.slice(0, 4).map((amenity) => {
+                            const IconComponent = getAmenityIcon(amenity)
+                            return (
+                              <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
+                                <IconComponent className="h-3 w-3" />
+                                {amenity}
+                              </Badge>
+                            )
+                          })}
+                          {room.amenities?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{room.amenities.length - 4} more
                             </Badge>
-                          )
-                        })}
-                        {room.amenities?.length > 4 && (
-                          <Badge variant="outline" className="text-xs">
-                            +{room.amenities.length - 4} more
-                          </Badge>
-                        )}
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    {room.description && (
-                      <div>
-                        <p className="text-sm text-gray-500 mb-1">Description</p>
-                        <p className="text-sm text-gray-700">{room.description}</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-                <CardFooter className="border-t bg-gray-50 flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="flex-1 bg-transparent"
-                    onClick={() => {
-                      setSelectedRoom(room)
-                      setRoomFormData({
-                        number: room.number,
-                        type: room.type,
-                        capacity: room.capacity,
-                        amenities: room.amenities || [],
-                        status: room.status,
-                        floor: room.floor,
-                        description: room.description || "",
-                        price: room.price || "",
-                        currency: room.currency || "PKR",
-                      })
-                      setShowEditRoomDialog(true)
-                    }}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="flex-1"
-                    disabled={room.status === "occupied"}
-                    onClick={() => {
-                      setSelectedRoom(room)
-                      setShowDeleteRoomDialog(true)
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </Button>
-                </CardFooter>
-              </Card>
-            ))}
-          </div>
+                      {room.description && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Description</p>
+                          <p className="text-sm text-gray-700">{room.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-gray-50 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setRoomFormData({
+                          number: room.number,
+                          type: room.type,
+                          capacity: room.capacity,
+                          amenities: room.amenities || [],
+                          status: room.status,
+                          floor: room.floor,
+                          description: room.description || "",
+                          price: room.price || "",
+                          currency: room.currency || "PKR",
+                        })
+                        setShowEditRoomDialog(true)
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={room.status === "occupied"}
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setShowDeleteRoomDialog(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
         </TabsContent>
-      )}
+
+        <TabsContent value="available" className="mt-6">
+          {roomsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>Loading rooms...</span>
+            </div>
+          ) : activeTab === "available" && tabFilteredRooms.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow border">
+              <BedDouble className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-900">No available rooms</p>
+              <p className="text-gray-500 mt-2">All rooms are currently occupied or under maintenance</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tabFilteredRooms.map((room) => (
+                <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 border-b">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <BedDouble className="h-5 w-5 text-emerald-600" />
+                          Room {room.number}
+                        </CardTitle>
+                        <CardDescription className="font-medium">{getRoomTypeLabel(room.type)}</CardDescription>
+                      </div>
+                      {getRoomStatusBadge(room.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Capacity</p>
+                          <p className="font-semibold">{room.capacity} guests</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Floor</p>
+                          <p className="font-semibold">Floor {room.floor}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Price</p>
+                          <p className="font-semibold text-emerald-600">
+                            {getCurrencySymbol(room.currency)} {room.price || "N/A"}
+                            {room.type.includes("dormitory") ? "/bed" : "/night"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <Select
+                            defaultValue={room.status}
+                            onValueChange={(value) => handleRoomStatusChange(room.id, value)}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="h-8 mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="occupied">Occupied</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="out-of-order">Out of Order</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {room.amenities?.slice(0, 4).map((amenity) => {
+                            const IconComponent = getAmenityIcon(amenity)
+                            return (
+                              <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
+                                <IconComponent className="h-3 w-3" />
+                                {amenity}
+                              </Badge>
+                            )
+                          })}
+                          {room.amenities?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{room.amenities.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {room.description && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Description</p>
+                          <p className="text-sm text-gray-700">{room.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-gray-50 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setRoomFormData({
+                          number: room.number,
+                          type: room.type,
+                          capacity: room.capacity,
+                          amenities: room.amenities || [],
+                          status: room.status,
+                          floor: room.floor,
+                          description: room.description || "",
+                          price: room.price || "",
+                          currency: room.currency || "PKR",
+                        })
+                        setShowEditRoomDialog(true)
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={room.status === "occupied"}
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setShowDeleteRoomDialog(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="occupied" className="mt-6">
+          {roomsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>Loading rooms...</span>
+            </div>
+          ) : activeTab === "occupied" && tabFilteredRooms.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow border">
+              <Users className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-900">No occupied rooms</p>
+              <p className="text-gray-500 mt-2">All rooms are currently available or under maintenance</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tabFilteredRooms.map((room) => (
+                <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 border-b">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <BedDouble className="h-5 w-5 text-emerald-600" />
+                          Room {room.number}
+                        </CardTitle>
+                        <CardDescription className="font-medium">{getRoomTypeLabel(room.type)}</CardDescription>
+                      </div>
+                      {getRoomStatusBadge(room.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Capacity</p>
+                          <p className="font-semibold">{room.capacity} guests</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Floor</p>
+                          <p className="font-semibold">Floor {room.floor}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Price</p>
+                          <p className="font-semibold text-emerald-600">
+                            {getCurrencySymbol(room.currency)} {room.price || "N/A"}
+                            {room.type.includes("dormitory") ? "/bed" : "/night"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <Select
+                            defaultValue={room.status}
+                            onValueChange={(value) => handleRoomStatusChange(room.id, value)}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="h-8 mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="occupied">Occupied</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="out-of-order">Out of Order</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {room.amenities?.slice(0, 4).map((amenity) => {
+                            const IconComponent = getAmenityIcon(amenity)
+                            return (
+                              <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
+                                <IconComponent className="h-3 w-3" />
+                                {amenity}
+                              </Badge>
+                            )
+                          })}
+                          {room.amenities?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{room.amenities.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {room.description && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Description</p>
+                          <p className="text-sm text-gray-700">{room.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-gray-50 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setRoomFormData({
+                          number: room.number,
+                          type: room.type,
+                          capacity: room.capacity,
+                          amenities: room.amenities || [],
+                          status: room.status,
+                          floor: room.floor,
+                          description: room.description || "",
+                          price: room.price || "",
+                          currency: room.currency || "PKR",
+                        })
+                        setShowEditRoomDialog(true)
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={room.status === "occupied"}
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setShowDeleteRoomDialog(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="maintenance" className="mt-6">
+          {roomsLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin mr-2" />
+              <span>Loading rooms...</span>
+            </div>
+          ) : activeTab === "maintenance" && tabFilteredRooms.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-lg shadow border">
+              <Home className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p className="text-lg font-medium text-gray-900">No rooms under maintenance</p>
+              <p className="text-gray-500 mt-2">All rooms are currently available or occupied</p>
+            </div>
+          ) : (
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {tabFilteredRooms.map((room) => (
+                <Card key={room.id} className="overflow-hidden hover:shadow-lg transition-shadow duration-200">
+                  <CardHeader className="bg-gradient-to-r from-emerald-50 to-blue-50 border-b">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <BedDouble className="h-5 w-5 text-emerald-600" />
+                          Room {room.number}
+                        </CardTitle>
+                        <CardDescription className="font-medium">{getRoomTypeLabel(room.type)}</CardDescription>
+                      </div>
+                      {getRoomStatusBadge(room.status)}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-500">Capacity</p>
+                          <p className="font-semibold">{room.capacity} guests</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Floor</p>
+                          <p className="font-semibold">Floor {room.floor}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Price</p>
+                          <p className="font-semibold text-emerald-600">
+                            {getCurrencySymbol(room.currency)} {room.price || "N/A"}
+                            {room.type.includes("dormitory") ? "/bed" : "/night"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Status</p>
+                          <Select
+                            defaultValue={room.status}
+                            onValueChange={(value) => handleRoomStatusChange(room.id, value)}
+                            disabled={isLoading}
+                          >
+                            <SelectTrigger className="h-8 mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="available">Available</SelectItem>
+                              <SelectItem value="occupied">Occupied</SelectItem>
+                              <SelectItem value="maintenance">Maintenance</SelectItem>
+                              <SelectItem value="out-of-order">Out of Order</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <p className="text-sm text-gray-500 mb-2">Amenities</p>
+                        <div className="flex flex-wrap gap-1">
+                          {room.amenities?.slice(0, 4).map((amenity) => {
+                            const IconComponent = getAmenityIcon(amenity)
+                            return (
+                              <Badge key={amenity} variant="outline" className="text-xs flex items-center gap-1">
+                                <IconComponent className="h-3 w-3" />
+                                {amenity}
+                              </Badge>
+                            )
+                          })}
+                          {room.amenities?.length > 4 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{room.amenities.length - 4} more
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+
+                      {room.description && (
+                        <div>
+                          <p className="text-sm text-gray-500 mb-1">Description</p>
+                          <p className="text-sm text-gray-700">{room.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                  <CardFooter className="border-t bg-gray-50 flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1 bg-transparent"
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setRoomFormData({
+                          number: room.number,
+                          type: room.type,
+                          capacity: room.capacity,
+                          amenities: room.amenities || [],
+                          status: room.status,
+                          floor: room.floor,
+                          description: room.description || "",
+                          price: room.price || "",
+                          currency: room.currency || "PKR",
+                        })
+                        setShowEditRoomDialog(true)
+                      }}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={room.status === "occupied"}
+                      onClick={() => {
+                        setSelectedRoom(room)
+                        setShowDeleteRoomDialog(true)
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete
+                    </Button>
+                  </CardFooter>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Add Room Dialog */}
       <Dialog open={showAddRoomDialog} onOpenChange={setShowAddRoomDialog}>
