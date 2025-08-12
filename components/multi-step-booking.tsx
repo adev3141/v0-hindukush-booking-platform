@@ -74,30 +74,12 @@ export function MultiStepBooking() {
           })
           return false
         }
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-        if (!emailRegex.test(bookingData.email)) {
-          toast({
-            title: "Invalid Email",
-            description: "Please enter a valid email address.",
-            variant: "destructive",
-          })
-          return false
-        }
         return true
       case 2:
         if (!checkInDate || !checkOutDate || !bookingData.roomType) {
           toast({
             title: "Missing Information",
             description: "Please select check-in/check-out dates and room type.",
-            variant: "destructive",
-          })
-          return false
-        }
-        if (checkOutDate <= checkInDate) {
-          toast({
-            title: "Invalid Dates",
-            description: "Check-out date must be after check-in date.",
             variant: "destructive",
           })
           return false
@@ -116,11 +98,6 @@ export function MultiStepBooking() {
       if (type === "checkIn") {
         setCheckInDate(date)
         updateBookingData("checkIn", dateString)
-        // Reset checkout date if it's before the new checkin date
-        if (checkOutDate && checkOutDate <= date) {
-          setCheckOutDate(undefined)
-          updateBookingData("checkOut", "")
-        }
       } else {
         setCheckOutDate(date)
         updateBookingData("checkOut", dateString)
@@ -141,31 +118,16 @@ export function MultiStepBooking() {
     return basePrice * nights
   }
 
-  const calculateNights = () => {
-    if (!checkInDate || !checkOutDate) return 0
-    return Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
-  }
-
   const handleSubmit = async () => {
     console.log("🚀 Starting booking submission...")
     setIsSubmitting(true)
 
     try {
       const totalAmount = calculateTotal()
-      const nights = calculateNights()
-
-      // Validate all required fields before submission
-      if (
-        !bookingData.firstName ||
-        !bookingData.lastName ||
-        !bookingData.email ||
-        !bookingData.phone ||
-        !bookingData.checkIn ||
-        !bookingData.checkOut ||
-        !bookingData.roomType
-      ) {
-        throw new Error("Please fill in all required fields")
-      }
+      const nights =
+        checkInDate && checkOutDate
+          ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+          : 1
 
       const submissionData = {
         ...bookingData,
@@ -175,12 +137,19 @@ export function MultiStepBooking() {
 
       console.log("📤 Submitting booking data:", submissionData)
 
-      const response = await fetch("/api/bookings", {
+      // Fix: Use absolute URL to ensure correct API endpoint
+      const apiUrl = window.location.origin + "/api/bookings"
+      console.log("📡 API URL:", apiUrl)
+
+      const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(submissionData),
+        // Fix: Add these options to handle potential network issues
+        cache: "no-cache",
+        credentials: "same-origin",
       })
 
       console.log("📡 Response status:", response.status)
@@ -239,7 +208,6 @@ export function MultiStepBooking() {
                   value={bookingData.firstName}
                   onChange={(e) => updateBookingData("firstName", e.target.value)}
                   placeholder="Enter your first name"
-                  required
                 />
               </div>
               <div>
@@ -249,30 +217,26 @@ export function MultiStepBooking() {
                   value={bookingData.lastName}
                   onChange={(e) => updateBookingData("lastName", e.target.value)}
                   placeholder="Enter your last name"
-                  required
                 />
               </div>
             </div>
             <div>
-              <Label htmlFor="email">Email Address *</Label>
+              <Label htmlFor="email">Email *</Label>
               <Input
                 id="email"
                 type="email"
                 value={bookingData.email}
                 onChange={(e) => updateBookingData("email", e.target.value)}
-                placeholder="Enter your email address"
-                required
+                placeholder="Enter your email"
               />
             </div>
             <div>
               <Label htmlFor="phone">Phone Number *</Label>
               <Input
                 id="phone"
-                type="tel"
                 value={bookingData.phone}
                 onChange={(e) => updateBookingData("phone", e.target.value)}
                 placeholder="Enter your phone number"
-                required
               />
             </div>
             <div>
@@ -281,7 +245,7 @@ export function MultiStepBooking() {
                 id="nationality"
                 value={bookingData.nationality}
                 onChange={(e) => updateBookingData("nationality", e.target.value)}
-                placeholder="Enter your nationality (optional)"
+                placeholder="Enter your nationality"
               />
             </div>
           </div>
@@ -303,7 +267,7 @@ export function MultiStepBooking() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {checkInDate ? format(checkInDate, "PPP") : "Select check-in date"}
+                      {checkInDate ? format(checkInDate, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -329,7 +293,7 @@ export function MultiStepBooking() {
                       )}
                     >
                       <CalendarIcon className="mr-2 h-4 w-4" />
-                      {checkOutDate ? format(checkOutDate, "PPP") : "Select check-out date"}
+                      {checkOutDate ? format(checkOutDate, "PPP") : "Select date"}
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent className="w-auto p-0">
@@ -379,9 +343,8 @@ export function MultiStepBooking() {
             {checkInDate && checkOutDate && bookingData.roomType && (
               <div className="p-4 bg-muted rounded-lg">
                 <h4 className="font-semibold mb-2">Booking Summary</h4>
-                <p>Nights: {calculateNights()}</p>
+                <p>Nights: {Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))}</p>
                 <p>Room: {bookingData.roomType}</p>
-                <p>Guests: {bookingData.guests}</p>
                 <p className="font-semibold">Total: PKR {calculateTotal().toLocaleString()}</p>
               </div>
             )}
@@ -391,6 +354,16 @@ export function MultiStepBooking() {
       case 3:
         return (
           <div className="space-y-4">
+            <div>
+              <Label htmlFor="specialRequests">Special Requests</Label>
+              <Textarea
+                id="specialRequests"
+                value={bookingData.specialRequests}
+                onChange={(e) => updateBookingData("specialRequests", e.target.value)}
+                placeholder="Any special requests or dietary requirements?"
+                rows={4}
+              />
+            </div>
             <div>
               <Label htmlFor="purposeOfVisit">Purpose of Visit</Label>
               <Select
@@ -410,16 +383,6 @@ export function MultiStepBooking() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label htmlFor="specialRequests">Special Requests</Label>
-              <Textarea
-                id="specialRequests"
-                value={bookingData.specialRequests}
-                onChange={(e) => updateBookingData("specialRequests", e.target.value)}
-                placeholder="Any special requests or dietary requirements?"
-                rows={4}
-              />
-            </div>
             <div className="p-4 bg-blue-50 rounded-lg">
               <h4 className="font-semibold mb-2">What's Included</h4>
               <ul className="text-sm space-y-1">
@@ -435,7 +398,10 @@ export function MultiStepBooking() {
 
       case 4:
         const total = calculateTotal()
-        const nights = calculateNights()
+        const nights =
+          checkInDate && checkOutDate
+            ? Math.ceil((checkOutDate.getTime() - checkInDate.getTime()) / (1000 * 60 * 60 * 24))
+            : 0
 
         return (
           <div className="space-y-6">
@@ -456,12 +422,6 @@ export function MultiStepBooking() {
                   <span>Phone:</span>
                   <span>{bookingData.phone}</span>
                 </div>
-                {bookingData.nationality && (
-                  <div className="flex justify-between">
-                    <span>Nationality:</span>
-                    <span>{bookingData.nationality}</span>
-                  </div>
-                )}
                 <div className="flex justify-between">
                   <span>Check-in:</span>
                   <span>{checkInDate ? format(checkInDate, "PPP") : "Not selected"}</span>
@@ -488,12 +448,6 @@ export function MultiStepBooking() {
                     <span>{bookingData.purposeOfVisit}</span>
                   </div>
                 )}
-                {bookingData.specialRequests && (
-                  <div className="flex justify-between">
-                    <span>Special Requests:</span>
-                    <span className="text-right max-w-[200px]">{bookingData.specialRequests}</span>
-                  </div>
-                )}
                 <div className="flex justify-between font-semibold text-lg border-t pt-2">
                   <span>Total:</span>
                   <span>PKR {total.toLocaleString()}</span>
@@ -502,7 +456,6 @@ export function MultiStepBooking() {
             </div>
             <div className="text-sm text-gray-600">
               <p>By confirming this booking, you agree to our terms and conditions.</p>
-              <p className="mt-2">You will receive a confirmation email with your booking details.</p>
             </div>
           </div>
         )
@@ -513,12 +466,6 @@ export function MultiStepBooking() {
             <div className="text-green-600 text-6xl">✓</div>
             <h3 className="text-2xl font-bold text-green-600">Booking Confirmed!</h3>
             <p>Thank you for your booking. You will receive a confirmation email shortly.</p>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-800">
-                Your booking has been successfully submitted and is now confirmed. Our team will contact you within 24
-                hours to finalize the details.
-              </p>
-            </div>
             <Button onClick={() => window.location.reload()} className="mt-4">
               Make Another Booking
             </Button>
