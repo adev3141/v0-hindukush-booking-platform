@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "@/components/ui/use-toast"
-import { RoomService } from "@/lib/booking-service"
 
 export function useRooms() {
   const [rooms, setRooms] = useState([])
@@ -12,7 +11,21 @@ export function useRooms() {
   const fetchRooms = useCallback(async () => {
     try {
       setLoading(true)
-      const roomsData = await RoomService.getRooms()
+      const response = await fetch("/api/rooms", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-cache",
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to fetch rooms")
+      }
+
+      const data = await response.json()
+      const roomsData = data.rooms || data || []
       setRooms(roomsData)
       setError(null)
     } catch (err) {
@@ -34,7 +47,21 @@ export function useRooms() {
 
   const createRoom = useCallback(async (roomData) => {
     try {
-      const newRoom = await RoomService.createRoom(roomData)
+      const response = await fetch("/api/rooms", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(roomData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create room")
+      }
+
+      const newRoom = data.room
       setRooms((prevRooms) => [...prevRooms, newRoom])
       return newRoom
     } catch (err) {
@@ -45,7 +72,21 @@ export function useRooms() {
 
   const updateRoom = useCallback(async (id, updates) => {
     try {
-      const updatedRoom = await RoomService.updateRoom(id, updates)
+      const response = await fetch(`/api/rooms/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(updates),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update room")
+      }
+
+      const updatedRoom = data.room
       setRooms((prevRooms) => prevRooms.map((room) => (room.id === id ? { ...room, ...updatedRoom } : room)))
       return updatedRoom
     } catch (err) {
@@ -56,7 +97,19 @@ export function useRooms() {
 
   const deleteRoom = useCallback(async (id) => {
     try {
-      await RoomService.deleteRoom(id)
+      const response = await fetch(`/api/rooms/${id}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete room")
+      }
+
       setRooms((prevRooms) => prevRooms.filter((room) => room.id !== id))
       return true
     } catch (err) {
@@ -67,7 +120,21 @@ export function useRooms() {
 
   const updateRoomStatus = useCallback(async (id, status) => {
     try {
-      const updatedRoom = await RoomService.updateRoomStatus(id, status)
+      const response = await fetch(`/api/rooms/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ status }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update room status")
+      }
+
+      const updatedRoom = data.room
       setRooms((prevRooms) => prevRooms.map((room) => (room.id === id ? { ...room, status } : room)))
       return updatedRoom
     } catch (err) {

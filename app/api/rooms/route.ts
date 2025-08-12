@@ -23,6 +23,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate room number format
+    if (!/^[A-Z0-9\s]{1,10}$/i.test(roomData.number)) {
+      return NextResponse.json(
+        { success: false, error: "Room number must be 1-10 alphanumeric characters" },
+        { status: 400 },
+      )
+    }
+
     // Validate capacity
     if (isNaN(Number(roomData.capacity)) || Number(roomData.capacity) < 1 || Number(roomData.capacity) > 10) {
       return NextResponse.json({ success: false, error: "Capacity must be a number between 1 and 10" }, { status: 400 })
@@ -33,9 +41,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Floor must be a number between 1 and 20" }, { status: 400 })
     }
 
+    // Validate price
+    if (isNaN(Number(roomData.price)) || Number(roomData.price) <= 0) {
+      return NextResponse.json({ success: false, error: "Price must be a positive number" }, { status: 400 })
+    }
+
     // Validate amenities
     if (!Array.isArray(roomData.amenities) || roomData.amenities.length === 0) {
       return NextResponse.json({ success: false, error: "At least one amenity is required" }, { status: 400 })
+    }
+
+    // Validate currency
+    if (!["PKR", "USD"].includes(roomData.currency)) {
+      return NextResponse.json({ success: false, error: "Currency must be PKR or USD" }, { status: 400 })
     }
 
     // Create the room
@@ -48,6 +66,8 @@ export async function POST(request: NextRequest) {
       status: roomData.status || "available",
       description: roomData.description || "",
       max_occupancy: Number(roomData.capacity),
+      price: Number(roomData.price),
+      currency: roomData.currency,
     })
 
     return NextResponse.json({
@@ -57,6 +77,12 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Room creation error:", error)
+
+    // Handle specific database errors
+    if (error.message?.includes("duplicate key")) {
+      return NextResponse.json({ success: false, error: "Room number already exists" }, { status: 409 })
+    }
+
     return NextResponse.json({ success: false, error: "Failed to create room" }, { status: 500 })
   }
 }
