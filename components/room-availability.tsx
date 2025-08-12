@@ -5,7 +5,6 @@ import { Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { format, addDays } from "date-fns"
 
 // Mock data for room availability
 const roomTypes = [
@@ -14,6 +13,35 @@ const roomTypes = [
   { id: "family", name: "Family Suite", price: 180 },
   { id: "executive", name: "Executive Suite", price: 220 },
 ]
+
+// Simple date formatting and manipulation functions
+const format = (date: Date, formatStr: string) => {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+  if (formatStr === "yyyy-MM-dd") {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  if (formatStr === "EEE") {
+    return days[date.getDay()]
+  }
+
+  if (formatStr === "MMM d") {
+    return `${months[date.getMonth()]} ${date.getDate()}`
+  }
+
+  return date.toLocaleDateString()
+}
+
+const addDays = (date: Date, days: number) => {
+  const result = new Date(date)
+  result.setDate(result.getDate() + days)
+  return result
+}
 
 // Generate random availability for demo purposes
 const generateAvailability = (startDate: Date, days: number) => {
@@ -105,7 +133,7 @@ export function RoomAvailability({
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs"
+                                className="text-xs bg-transparent"
                                 onClick={() => handleBookNow(room.id, date)}
                               >
                                 Book

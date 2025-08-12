@@ -10,7 +10,38 @@ import { Textarea } from "@/components/ui/textarea"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react"
-import { format } from "date-fns"
+// Simple date formatting function to replace date-fns
+const format = (date: Date, formatStr: string) => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+
+  if (formatStr === "yyyy-MM-dd") {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, "0")
+    const day = String(date.getDate()).padStart(2, "0")
+    return `${year}-${month}-${day}`
+  }
+
+  if (formatStr === "PPP") {
+    const fullMonths = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ]
+    return `${fullMonths[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
+  }
+
+  // Default fallback
+  return date.toLocaleDateString()
+}
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 
