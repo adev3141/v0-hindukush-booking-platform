@@ -34,9 +34,14 @@ function sanitizeUpdates(input: Record<string, any>) {
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { data, error } = await supabaseAdmin.from(TABLE).select("*").eq("id", params.id).single()
+    const { data, error } = await supabaseAdmin.from(TABLE).select("*").eq("id", params.id)
     if (error) throw error
-    return NextResponse.json({ success: true, booking: data })
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, booking: data[0] })
   } catch (error) {
     console.error("Get booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to fetch booking" }, { status: 500 })
@@ -57,10 +62,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       .update({ ...updates, updated_at: new Date().toISOString() })
       .eq("id", params.id)
       .select()
-      .single()
 
     if (error) throw error
-    return NextResponse.json({ success: true, booking: data })
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ success: false, error: "Booking not found or not updated" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, booking: data[0] })
   } catch (error) {
     console.error("Update booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to update booking" }, { status: 500 })
@@ -81,10 +90,14 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
       })
       .eq("id", params.id)
       .select()
-      .single()
 
     if (error) throw error
-    return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking: data })
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking: data[0] })
   } catch (error) {
     console.error("Cancel booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to cancel booking" }, { status: 500 })

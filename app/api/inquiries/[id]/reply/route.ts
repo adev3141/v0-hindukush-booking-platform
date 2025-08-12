@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { InquiryService } from "@/lib/booking-service"
+import { supabaseAdmin } from "@/lib/supabase"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -9,11 +9,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ success: false, error: "Reply message is required" }, { status: 400 })
     }
 
-    const inquiry = await InquiryService.replyToInquiry(params.id, reply.trim())
+    const { data, error } = await supabaseAdmin
+      .from("inquiries")
+      .update({
+        reply: reply.trim(),
+        status: "replied",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", params.id)
+      .select()
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return NextResponse.json({ success: false, error: "Inquiry not found" }, { status: 404 })
+    }
 
     return NextResponse.json({
       success: true,
-      inquiry,
+      inquiry: data[0],
       message: "Reply sent successfully",
     })
   } catch (error) {

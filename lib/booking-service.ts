@@ -16,14 +16,17 @@ export class BookingService {
         .from("bookings")
         .insert([{ ...bookingData, booking_reference }])
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase booking creation error:", error)
         throw new Error(`Failed to create booking: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Failed to create booking: No data returned")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("BookingService.createBooking error:", error)
       throw error
@@ -50,14 +53,18 @@ export class BookingService {
   // Get booking by ID
   static async getBookingById(id: string) {
     try {
-      const { data, error } = await supabase.from("bookings").select("*").eq("id", id).single()
+      const { data, error } = await supabase.from("bookings").select("*").eq("id", id)
 
       if (error) {
         console.error("Supabase get booking by ID error:", error)
         throw new Error(`Failed to fetch booking: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Booking not found")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("BookingService.getBookingById error:", error)
       throw error
@@ -72,14 +79,17 @@ export class BookingService {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase update booking error:", error)
         throw new Error(`Failed to update booking: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Booking not found or not updated")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("BookingService.updateBooking error:", error)
       throw error
@@ -191,14 +201,18 @@ export class InquiryService {
   // Create inquiry
   static async createInquiry(inquiryData: Omit<Inquiry, "id" | "created_at" | "updated_at">) {
     try {
-      const { data, error } = await supabase.from("inquiries").insert([inquiryData]).select().single()
+      const { data, error } = await supabase.from("inquiries").insert([inquiryData]).select()
 
       if (error) {
         console.error("Supabase create inquiry error:", error)
         throw new Error(`Failed to create inquiry: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Failed to create inquiry: No data returned")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("InquiryService.createInquiry error:", error)
       throw error
@@ -234,14 +248,17 @@ export class InquiryService {
         })
         .eq("id", id)
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase reply to inquiry error:", error)
         throw new Error(`Failed to reply to inquiry: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Inquiry not found")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("InquiryService.replyToInquiry error:", error)
       throw error
@@ -256,14 +273,17 @@ export class InquiryService {
         .update({ status, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase update inquiry status error:", error)
         throw new Error(`Failed to update inquiry status: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Inquiry not found")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("InquiryService.updateInquiryStatus error:", error)
       throw error
@@ -296,14 +316,18 @@ export class RoomService {
   // Create room
   static async createRoom(roomData: Omit<Room, "id" | "created_at" | "updated_at">) {
     try {
-      const { data, error } = await supabase.from("rooms").insert([roomData]).select().single()
+      const { data, error } = await supabase.from("rooms").insert([roomData]).select()
 
       if (error) {
         console.error("Supabase create room error:", error)
         throw new Error(`Failed to create room: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Failed to create room: No data returned")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("RoomService.createRoom error:", error)
       throw error
@@ -318,14 +342,17 @@ export class RoomService {
         .update({ ...updates, updated_at: new Date().toISOString() })
         .eq("id", id)
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase update room error:", error)
         throw new Error(`Failed to update room: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Room not found or not updated")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("RoomService.updateRoom error:", error)
       throw error
@@ -379,14 +406,17 @@ export class RoomService {
         .update({ ...pricing, updated_at: new Date().toISOString() })
         .eq("room_type", roomType)
         .select()
-        .single()
 
       if (error) {
         console.error("Supabase update room pricing error:", error)
         throw new Error(`Failed to update room pricing: ${error.message}`)
       }
 
-      return data
+      if (!data || data.length === 0) {
+        throw new Error("Room pricing not found or not updated")
+      }
+
+      return data[0]
     } catch (error) {
       console.error("RoomService.updateRoomPricing error:", error)
       throw error
