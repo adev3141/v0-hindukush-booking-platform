@@ -12,6 +12,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { CalendarIcon, ChevronLeft, ChevronRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
+import { useRooms } from "@/hooks/use-rooms"
 
 // Simple date formatting function to replace date-fns
 const format = (date: Date, formatStr: string) => {
@@ -82,6 +83,7 @@ export function MultiStepBooking() {
   const [roomPricing, setRoomPricing] = useState<RoomPricing[]>([])
   const [loadingRoomTypes, setLoadingRoomTypes] = useState(true)
   const { toast } = useToast()
+  const { fetchRooms: refreshRooms } = useRooms()
 
   const [bookingData, setBookingData] = useState<BookingData>({
     firstName: "",
@@ -377,6 +379,7 @@ export function MultiStepBooking() {
           title: "Booking Confirmed!",
           description: `Your booking reference is ${result.booking.booking_reference}`,
         })
+        await refreshRooms()
         setCurrentStep(5) // Success step
       } else {
         console.error("❌ Booking failed:", result)
