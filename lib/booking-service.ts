@@ -97,8 +97,8 @@ export class BookingService {
   }
 
   // Update booking status
-  static async updateBookingStatus(id: string, status: Booking["booking_status"]) {
-    return this.updateBooking(id, { booking_status: status })
+  static async updateBookingStatus(id: string, status: Booking["status"]) {
+    return this.updateBooking(id, { status: status })
   }
 
   // Update payment status
@@ -109,7 +109,7 @@ export class BookingService {
   // Delete/Cancel booking
   static async cancelBooking(id: string, reason?: string) {
     return this.updateBooking(id, {
-      booking_status: "cancelled",
+      status: "cancelled",
       special_requests: reason ? `Cancelled: ${reason}` : "Cancelled",
     })
   }
@@ -122,7 +122,7 @@ export class BookingService {
         .from("bookings")
         .select("room_id, room_type, room_number")
         .or(`and(check_in.lte.${checkOut},check_out.gte.${checkIn})`)
-        .in("booking_status", ["confirmed", "checked-in"])
+        .in("status", ["confirmed", "checked-in"])
 
       if (roomType) {
         query = query.eq("room_type", roomType)
@@ -165,7 +165,7 @@ export class BookingService {
       const { data: occupiedBookings, error: bookingsError } = await supabase
         .from("bookings")
         .select("room_id, room_type")
-        .in("booking_status", ["confirmed", "checked-in"])
+        .in("status", ["confirmed", "checked-in"])
         .lte("check_in", new Date().toISOString().split("T")[0])
         .gte("check_out", new Date().toISOString().split("T")[0])
 

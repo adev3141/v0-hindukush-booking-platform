@@ -78,7 +78,7 @@ export default function AnalyticsPage() {
     if (!bookings || !dateRange.from || !dateRange.to) return []
 
     return bookings.filter((booking) => {
-      const bookingDate = new Date(booking.created_at || booking.check_in_date)
+      const bookingDate = new Date(booking.created_at || booking.check_in)
       return bookingDate >= dateRange.from && bookingDate <= dateRange.to
     })
   }, [bookings, dateRange])
@@ -94,8 +94,8 @@ export default function AnalyticsPage() {
 
     const totalRevenue = paidBookings.reduce((sum, booking) => sum + Number.parseFloat(booking.total_amount || "0"), 0)
     const totalNights = confirmedBookings.reduce((sum, booking) => {
-      const checkIn = new Date(booking.check_in_date)
-      const checkOut = new Date(booking.check_out_date)
+      const checkIn = new Date(booking.check_in)
+      const checkOut = new Date(booking.check_out)
       return sum + differenceInDays(checkOut, checkIn)
     }, 0)
 
@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
     const dailyBookings = new Map()
 
     filteredBookings.forEach((booking) => {
-      const date = format(new Date(booking.created_at || booking.check_in_date), "yyyy-MM-dd")
+      const date = format(new Date(booking.created_at || booking.check_in), "yyyy-MM-dd")
       dailyBookings.set(date, (dailyBookings.get(date) || 0) + 1)
     })
 

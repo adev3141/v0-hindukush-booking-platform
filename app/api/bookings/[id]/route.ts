@@ -20,7 +20,7 @@ const ALLOWED_UPDATE_FIELDS = new Set([
   "currency",
   "payment_method",
   "payment_status",
-  "booking_status",
+  "status",
   "special_requests",
 ])
 
@@ -84,7 +84,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { data, error } = await supabaseAdmin
       .from(TABLE)
       .update({
-        booking_status: "cancelled",
+        status: "cancelled",
         special_requests: reason ? `Cancelled: ${reason}` : "Cancelled",
         updated_at: new Date().toISOString(),
       })

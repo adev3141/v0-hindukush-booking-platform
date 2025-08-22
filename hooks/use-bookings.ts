@@ -22,7 +22,7 @@ export interface Booking {
   purpose_of_visit?: string
   payment_method?: string
   payment_status: string
-  booking_status: string
+  status: string
   created_at: string
   updated_at: string
 }
@@ -114,7 +114,7 @@ export function useBookings() {
       console.log("🔄 Cancelling booking:", id, "Reason:", reason)
 
       const updates: Partial<Booking> = {
-        booking_status: "cancelled",
+        status: "cancelled",
         updated_at: new Date().toISOString(),
       }
 

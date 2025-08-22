@@ -65,7 +65,7 @@ export interface Booking {
   purpose_of_visit?: string
   payment_method?: string
   payment_status: "pending" | "paid" | "failed" | "refunded"
-  booking_status: "pending" | "confirmed" | "checked-in" | "checked-out" | "cancelled"
+  status: "pending" | "confirmed" | "checked-in" | "checked-out" | "cancelled"
   created_at: string
   updated_at: string
 }

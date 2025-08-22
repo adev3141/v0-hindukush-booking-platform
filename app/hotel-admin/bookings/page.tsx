@@ -160,8 +160,8 @@ export default function BookingsPage() {
         booking.id,
         booking.guest_name,
         booking.guest_email,
-        booking.check_in_date,
-        booking.check_out_date,
+        booking.check_in,
+        booking.check_out,
         booking.room_type,
         booking.status,
         booking.payment_status,
@@ -277,9 +277,9 @@ export default function BookingsPage() {
                           </TableCell>
                           <TableCell>
                             <div className="text-sm">
-                              <div>{format(new Date(booking.check_in_date), "MMM dd, yyyy")}</div>
+                              <div>{format(new Date(booking.check_in), "MMM dd, yyyy")}</div>
                               <div className="text-gray-500">
-                                to {format(new Date(booking.check_out_date), "MMM dd, yyyy")}
+                                to {format(new Date(booking.check_out), "MMM dd, yyyy")}
                               </div>
                             </div>
                           </TableCell>
@@ -409,8 +409,8 @@ export default function BookingsPage() {
                 <div>
                   <Label className="text-sm font-medium text-gray-500">Booking Information</Label>
                   <div className="mt-1 space-y-1">
-                    <div>Check-in: {format(new Date(selectedBooking.check_in_date), "PPP")}</div>
-                    <div>Check-out: {format(new Date(selectedBooking.check_out_date), "PPP")}</div>
+                    <div>Check-in: {format(new Date(selectedBooking.check_in), "PPP")}</div>
+                    <div>Check-out: {format(new Date(selectedBooking.check_out), "PPP")}</div>
                     <div>Room Type: {selectedBooking.room_type}</div>
                     <div>Guests: {selectedBooking.number_of_guests}</div>
                   </div>

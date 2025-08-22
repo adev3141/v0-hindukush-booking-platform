@@ -82,8 +82,8 @@ Thank you for choosing Hindukush Sarai for your stay. We are pleased to confirm 
 
 Booking Details:
 - Booking ID: {booking_id}
-- Check-in: {check_in_date}
-- Check-out: {check_out_date}
+- Check-in: {check_in}
+- Check-out: {check_out}
 - Room Type: {room_type}
 - Number of Guests: {number_of_guests}
 - Total Amount: {total_amount}
@@ -98,8 +98,8 @@ Hindukush Sarai Team`,
 We have processed your cancellation request for booking #{booking_id}.
 
 Cancelled Booking Details:
-- Check-in: {check_in_date}
-- Check-out: {check_out_date}
+- Check-in: {check_in}
+- Check-out: {check_out}
 - Room Type: {room_type}
 - Cancellation Reason: {cancellation_reason}
 
@@ -475,7 +475,7 @@ Hindukush Sarai Team`,
                     className="mt-1 min-h-32"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Available variables: {"{guest_name}"}, {"{booking_id}"}, {"{check_in_date}"}, {"{check_out_date}"},{" "}
+                    Available variables: {"{guest_name}"}, {"{booking_id}"}, {"{check_in}"}, {"{check_out}"},{" "}
                     {"{room_type}"}, {"{number_of_guests}"}, {"{total_amount}"}
                   </p>
                 </div>
@@ -513,7 +513,7 @@ Hindukush Sarai Team`,
                     className="mt-1 min-h-32"
                   />
                   <p className="text-xs text-gray-500 mt-1">
-                    Available variables: {"{guest_name}"}, {"{booking_id}"}, {"{check_in_date}"}, {"{check_out_date}"},{" "}
+                    Available variables: {"{guest_name}"}, {"{booking_id}"}, {"{check_in}"}, {"{check_out}"},{" "}
                     {"{room_type}"}, {"{cancellation_reason}"}
                   </p>
                 </div>

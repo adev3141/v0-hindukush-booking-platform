@@ -85,8 +85,8 @@ export default function GuestsPage() {
 
       // Update last stay
       if (booking.status === "checked-out") {
-        if (!guest.lastStay || new Date(booking.check_out_date) > new Date(guest.lastStay)) {
-          guest.lastStay = booking.check_out_date
+        if (!guest.lastStay || new Date(booking.check_out) > new Date(guest.lastStay)) {
+          guest.lastStay = booking.check_out
         }
       }
     })
@@ -417,14 +417,14 @@ export default function GuestsPage() {
                       </TableHeader>
                       <TableBody>
                         {selectedGuest.bookings
-                          .sort((a, b) => new Date(b.check_in_date).getTime() - new Date(a.check_in_date).getTime())
+                          .sort((a, b) => new Date(b.check_in).getTime() - new Date(a.check_in).getTime())
                           .map((booking) => (
                             <TableRow key={booking.id}>
                               <TableCell>#{booking.id}</TableCell>
                               <TableCell>
                                 <div className="text-sm">
-                                  {format(new Date(booking.check_in_date), "MMM dd")} -{" "}
-                                  {format(new Date(booking.check_out_date), "MMM dd, yyyy")}
+                                  {format(new Date(booking.check_in), "MMM dd")} -{" "}
+                                  {format(new Date(booking.check_out), "MMM dd, yyyy")}
                                 </div>
                               </TableCell>
                               <TableCell>{booking.room_type}</TableCell>

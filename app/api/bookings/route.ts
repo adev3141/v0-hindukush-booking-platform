@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
       total_amount: totalAmount,
       currency: "PKR",
       payment_status: "pending",
-      booking_status: "confirmed",
+      status: "confirmed",
       special_requests: body.specialRequests || null,
       purpose_of_visit: body.purposeOfVisit || null,
       payment_method: null,
