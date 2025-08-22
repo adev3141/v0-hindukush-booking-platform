@@ -169,6 +169,27 @@ export async function POST(request: NextRequest) {
     const basePrice = roomPrices[body.roomType] || 6000
     const totalAmount = basePrice * nights
 
+    // Find an available room of the requested type
+    const { data: availableRoom, error: roomError } = await supabase
+      .from("rooms")
+      .select("id, number")
+      .eq("type", body.roomType)
+      .eq("status", "available")
+      .order("number", { ascending: true })
+      .limit(1)
+      .single()
+
+    if (roomError || !availableRoom) {
+      console.error("❌ No available rooms for type:", body.roomType, roomError)
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No available rooms for the selected type",
+        },
+        { status: 400 },
+      )
+    }
+
     // Prepare booking data for database
     const bookingData = {
       booking_reference: bookingReference,
@@ -179,6 +200,8 @@ export async function POST(request: NextRequest) {
       check_in: body.checkIn,
       check_out: body.checkOut,
       room_type: body.roomType,
+      room_id: availableRoom.id,
+      room_number: availableRoom.number,
       guests: body.guests || 1,
       nights: nights,
       total_amount: totalAmount,
@@ -217,6 +240,16 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("✅ Booking created successfully:", data)
+
+    // Mark room as occupied
+    const { error: roomStatusError } = await supabase
+      .from("rooms")
+      .update({ status: "occupied", updated_at: new Date().toISOString() })
+      .eq("id", availableRoom.id)
+
+    if (roomStatusError) {
+      console.error("❌ Failed to update room status:", roomStatusError)
+    }
 
     return NextResponse.json({
       success: true,
