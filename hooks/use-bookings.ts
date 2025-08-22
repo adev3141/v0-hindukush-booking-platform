@@ -99,6 +99,18 @@ export function useBookings() {
 
       console.log("✅ Booking updated successfully:", data)
 
+      // If booking was cancelled or checked-out, mark room as available
+      if (updates.status && ["cancelled", "checked-out"].includes(updates.status) && data?.room_id) {
+        const { error: roomErr } = await supabase
+          .from("rooms")
+          .update({ status: "available" })
+          .eq("id", data.room_id)
+
+        if (roomErr) {
+          console.error("Error updating room status:", roomErr)
+        }
+      }
+
       // Refresh bookings list
       await fetchBookings()
 
@@ -136,6 +148,18 @@ export function useBookings() {
       }
 
       console.log("✅ Booking cancelled successfully:", data)
+
+      // Free up the room
+      if (data?.room_id) {
+        const { error: roomErr } = await supabase
+          .from("rooms")
+          .update({ status: "available" })
+          .eq("id", data.room_id)
+
+        if (roomErr) {
+          console.error("Error updating room status:", roomErr)
+        }
+      }
 
       // Refresh bookings list
       await fetchBookings()

@@ -69,6 +69,18 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "Booking not found or not updated" }, { status: 404 })
     }
 
+    // If booking is cancelled or checked-out, free up the room
+    if (updates.status && ["cancelled", "checked-out"].includes(updates.status) && data[0].room_id) {
+      const { error: roomErr } = await supabaseAdmin
+        .from("rooms")
+        .update({ status: "available", updated_at: new Date().toISOString() })
+        .eq("id", data[0].room_id)
+
+      if (roomErr) {
+        console.error("Failed to update room status:", roomErr)
+      }
+    }
+
     return NextResponse.json({ success: true, booking: data[0] })
   } catch (error) {
     console.error("Update booking error:", error)
@@ -95,6 +107,18 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     if (!data || data.length === 0) {
       return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
+    }
+
+    // Free up the room
+    if (data[0].room_id) {
+      const { error: roomErr } = await supabaseAdmin
+        .from("rooms")
+        .update({ status: "available", updated_at: new Date().toISOString() })
+        .eq("id", data[0].room_id)
+
+      if (roomErr) {
+        console.error("Failed to update room status:", roomErr)
+      }
     }
 
     return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking: data[0] })
