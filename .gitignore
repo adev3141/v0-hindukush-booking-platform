@@ -18,6 +18,16 @@ yarn-error.log*
 
 # env files
 .env*
+firebase-debug.log
+.firebaserc.local
+
+# firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.storage/
+*.local
 
 # vercel
 .vercel
@@ -25,3 +35,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# misc
+.DS_Store
