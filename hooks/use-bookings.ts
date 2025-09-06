@@ -1,6 +1,17 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import {
+  collection,
+  query,
+  orderBy,
+  getDocs,
+  addDoc,
+  updateDoc,
+  doc,
+  onSnapshot,
+} from "firebase/firestore"
+import { db } from "@/lib/firebase"
 import type { Booking } from "@/lib/types"
 
 export function useBookings() {
@@ -8,19 +19,17 @@ export function useBookings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchBookings = async () => {
+  const bookingsRef = collection(db, "bookings")
+  const bookingsQuery = query(bookingsRef, orderBy("created_at", "desc"))
+
+  const fetchBookings = useCallback(async () => {
     try {
       setLoading(true)
       setError(null)
 
-      const response = await fetch("/api/bookings", { cache: "no-cache" })
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to fetch bookings")
-      }
-      const data = await response.json()
-      console.log("✅ Bookings fetched successfully:", data.bookings)
-      setBookings(data.bookings || [])
+      const snapshot = await getDocs(bookingsQuery)
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Booking[]
+      setBookings(data)
     } catch (err) {
       console.error("❌ Error in fetchBookings:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch bookings")
@@ -28,24 +37,18 @@ export function useBookings() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [bookingsQuery])
 
   const createBooking = async (bookingData: Partial<Booking>) => {
     try {
-      console.log("🔄 Creating booking:", bookingData)
-
-      const response = await fetch("/api/bookings", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bookingData),
+      const now = new Date().toISOString()
+      const docRef = await addDoc(bookingsRef, {
+        ...bookingData,
+        created_at: now,
+        updated_at: now,
       })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to create booking")
-      }
-      console.log("✅ Booking created successfully:", data.booking)
-      await fetchBookings()
-      return data.booking
+      console.log("✅ Booking created successfully:", docRef.id)
+      return { id: docRef.id, ...bookingData, created_at: now, updated_at: now } as Booking
     } catch (err) {
       console.error("❌ Error in createBooking:", err)
       throw err
@@ -54,20 +57,10 @@ export function useBookings() {
 
   const updateBooking = async (id: string, updates: Partial<Booking>) => {
     try {
-      console.log("🔄 Updating booking:", id, updates)
-
-      const response = await fetch(`/api/bookings/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updates),
-      })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to update booking")
-      }
-      console.log("✅ Booking updated successfully:", data.booking)
-      await fetchBookings()
-      return data.booking
+      const bookingDoc = doc(db, "bookings", id)
+      await updateDoc(bookingDoc, { ...updates, updated_at: new Date().toISOString() })
+      console.log("✅ Booking updated successfully:", id)
+      return { id, ...updates } as Booking
     } catch (err) {
       console.error("❌ Error in updateBooking:", err)
       throw err
@@ -76,19 +69,14 @@ export function useBookings() {
 
   const cancelBooking = async (id: string, reason?: string) => {
     try {
-      console.log("🔄 Cancelling booking:", id, "Reason:", reason)
-
-      const params = reason ? `?reason=${encodeURIComponent(reason)}` : ""
-      const response = await fetch(`/api/bookings/${id}${params}`, {
-        method: "DELETE",
+      const bookingDoc = doc(db, "bookings", id)
+      await updateDoc(bookingDoc, {
+        status: "cancelled",
+        cancellation_reason: reason || null,
+        updated_at: new Date().toISOString(),
       })
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to cancel booking")
-      }
-      console.log("✅ Booking cancelled successfully:", data.booking)
-      await fetchBookings()
-      return data.booking
+      console.log("✅ Booking cancelled successfully:", id)
+      return { id, status: "cancelled", cancellation_reason: reason || null } as Booking
     } catch (err) {
       console.error("❌ Error in cancelBooking:", err)
       throw err
@@ -100,8 +88,22 @@ export function useBookings() {
   }
 
   useEffect(() => {
-    fetchBookings()
-  }, [])
+    setLoading(true)
+    const unsubscribe = onSnapshot(
+      bookingsQuery,
+      (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })) as Booking[]
+        setBookings(data)
+        setLoading(false)
+      },
+      (err) => {
+        console.error("❌ Error in bookings snapshot:", err)
+        setError(err instanceof Error ? err.message : "Failed to fetch bookings")
+        setLoading(false)
+      }
+    )
+    return unsubscribe
+  }, [bookingsQuery])
 
   return {
     bookings,
