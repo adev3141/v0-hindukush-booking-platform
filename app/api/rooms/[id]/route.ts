@@ -1,10 +1,14 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { RoomService } from "@/lib/booking-service"
+import { getAdminDb } from "@/lib/firebaseAdmin"
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const updates = await request.json()
-    const room = await RoomService.updateRoom(params.id, updates)
+    const db = getAdminDb()
+    const docRef = db.collection("rooms").doc(params.id)
+    await docRef.update({ ...updates, updated_at: new Date().toISOString() })
+    const doc = await docRef.get()
+    const room = { id: docRef.id, ...doc.data() }
     return NextResponse.json({ success: true, room })
   } catch (error) {
     console.error("Update room error:", error)
@@ -14,7 +18,8 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    await RoomService.deleteRoom(params.id)
+    const db = getAdminDb()
+    await db.collection("rooms").doc(params.id).delete()
     return NextResponse.json({ success: true, message: "Room deleted successfully" })
   } catch (error) {
     console.error("Delete room error:", error)

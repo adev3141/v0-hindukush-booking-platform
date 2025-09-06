@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { toast } from "@/components/ui/use-toast"
-import { supabase } from "@/lib/supabase"
 
 export function useRooms() {
   const [rooms, setRooms] = useState([])
@@ -44,35 +43,6 @@ export function useRooms() {
 
   useEffect(() => {
     fetchRooms()
-  }, [fetchRooms])
-
-  useEffect(() => {
-    const roomsChannel = supabase
-      .channel("rooms_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "rooms" },
-        () => {
-          fetchRooms()
-        },
-      )
-      .subscribe()
-
-    const bookingsChannel = supabase
-      .channel("bookings_changes")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "bookings" },
-        () => {
-          fetchRooms()
-        },
-      )
-      .subscribe()
-
-    return () => {
-      supabase.removeChannel(roomsChannel)
-      supabase.removeChannel(bookingsChannel)
-    }
   }, [fetchRooms])
 
   const createRoom = useCallback(async (roomData) => {

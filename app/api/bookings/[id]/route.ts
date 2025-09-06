@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase" // service role client
+import { getAdminDb } from "@/lib/firebaseAdmin" // service role client
 
 const TABLE = "bookings"
 
@@ -34,14 +34,14 @@ function sanitizeUpdates(input: Record<string, any>) {
 
 export async function GET(_request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const { data, error } = await supabaseAdmin.from(TABLE).select("*").eq("id", params.id)
-    if (error) throw error
+    const db = getAdminDb()
+    const doc = await db.collection(TABLE).doc(params.id).get()
 
-    if (!data || data.length === 0) {
+    if (!doc.exists) {
       return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
     }
 
-    return NextResponse.json({ success: true, booking: data[0] })
+    return NextResponse.json({ success: true, booking: { id: doc.id, ...doc.data() } })
   } catch (error) {
     console.error("Get booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to fetch booking" }, { status: 500 })
@@ -57,31 +57,26 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
       return NextResponse.json({ success: false, error: "No valid fields to update" }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from(TABLE)
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq("id", params.id)
-      .select()
-
-    if (error) throw error
-
-    if (!data || data.length === 0) {
-      return NextResponse.json({ success: false, error: "Booking not found or not updated" }, { status: 404 })
+    const db = getAdminDb()
+    const docRef = db.collection(TABLE).doc(params.id)
+    const doc = await docRef.get()
+    if (!doc.exists) {
+      return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
     }
 
-    // If booking is cancelled or checked-out, free up the room
-    if (updates.status && ["cancelled", "checked-out"].includes(updates.status) && data[0].room_id) {
-      const { error: roomErr } = await supabaseAdmin
-        .from("rooms")
+    await docRef.update({ ...updates, updated_at: new Date().toISOString() })
+    const updated = await docRef.get()
+    const booking = { id: docRef.id, ...updated.data() }
+
+    if (updates.status && ["cancelled", "checked-out"].includes(updates.status) && booking.room_id) {
+      await db
+        .collection("rooms")
+        .doc(booking.room_id)
         .update({ status: "available", updated_at: new Date().toISOString() })
-        .eq("id", data[0].room_id)
-
-      if (roomErr) {
-        console.error("Failed to update room status:", roomErr)
-      }
+        .catch((err) => console.error("Failed to update room status:", err))
     }
 
-    return NextResponse.json({ success: true, booking: data[0] })
+    return NextResponse.json({ success: true, booking })
   } catch (error) {
     console.error("Update booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to update booking" }, { status: 500 })
@@ -93,35 +88,31 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
     const { searchParams } = new URL(request.url)
     const reason = searchParams.get("reason") || undefined
 
-    const { data, error } = await supabaseAdmin
-      .from(TABLE)
-      .update({
-        status: "cancelled",
-        special_requests: reason ? `Cancelled: ${reason}` : "Cancelled",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", params.id)
-      .select()
-
-    if (error) throw error
-
-    if (!data || data.length === 0) {
+    const db = getAdminDb()
+    const docRef = db.collection(TABLE).doc(params.id)
+    const doc = await docRef.get()
+    if (!doc.exists) {
       return NextResponse.json({ success: false, error: "Booking not found" }, { status: 404 })
     }
 
-    // Free up the room
-    if (data[0].room_id) {
-      const { error: roomErr } = await supabaseAdmin
-        .from("rooms")
-        .update({ status: "available", updated_at: new Date().toISOString() })
-        .eq("id", data[0].room_id)
+    await docRef.update({
+      status: "cancelled",
+      special_requests: reason ? `Cancelled: ${reason}` : "Cancelled",
+      updated_at: new Date().toISOString(),
+    })
 
-      if (roomErr) {
-        console.error("Failed to update room status:", roomErr)
-      }
+    const updated = await docRef.get()
+    const booking = { id: docRef.id, ...updated.data() }
+
+    if (booking.room_id) {
+      await db
+        .collection("rooms")
+        .doc(booking.room_id)
+        .update({ status: "available", updated_at: new Date().toISOString() })
+        .catch((err) => console.error("Failed to update room status:", err))
     }
 
-    return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking: data[0] })
+    return NextResponse.json({ success: true, message: "Booking cancelled successfully", booking })
   } catch (error) {
     console.error("Cancel booking error:", error)
     return NextResponse.json({ success: false, error: "Failed to cancel booking" }, { status: 500 })
