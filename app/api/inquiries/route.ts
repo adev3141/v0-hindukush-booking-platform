@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { InquiryService } from "@/lib/booking-service"
+import { getAdminDb } from "@/lib/firebaseAdmin"
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const inquiry = await InquiryService.createInquiry(inquiryData)
+    const db = getAdminDb()
+    const docRef = await db.collection("inquiries").add({
+      ...inquiryData,
+      status: "new",
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    const doc = await docRef.get()
+    const inquiry = { id: docRef.id, ...doc.data() }
 
     return NextResponse.json({
       success: true,
@@ -28,7 +36,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET() {
   try {
-    const inquiries = await InquiryService.getInquiries()
+    const db = getAdminDb()
+    const snapshot = await db.collection("inquiries").orderBy("created_at", "desc").get()
+    const inquiries = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
     return NextResponse.json({ success: true, inquiries })
   } catch (error) {
     console.error("Get inquiries error:", error)

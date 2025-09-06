@@ -1,11 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { RoomService } from "@/lib/booking-service"
+import { getAdminDb } from "@/lib/firebaseAdmin"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    const rooms = await RoomService.getRooms()
+    const db = getAdminDb()
+    const snapshot = await db.collection("rooms").orderBy("type").orderBy("number").get()
+    const rooms = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }))
     return NextResponse.json({ success: true, rooms })
   } catch (error) {
     console.error("Get rooms error:", error)
@@ -59,7 +61,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the room
-    const room = await RoomService.createRoom({
+    const db = getAdminDb()
+    const docRef = await db.collection("rooms").add({
       number: roomData.number,
       type: roomData.type,
       capacity: Number(roomData.capacity),
@@ -70,7 +73,11 @@ export async function POST(request: NextRequest) {
       max_occupancy: Number(roomData.capacity),
       price: Number(roomData.price),
       currency: roomData.currency,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
+    const doc = await docRef.get()
+    const room = { id: docRef.id, ...doc.data() }
 
     return NextResponse.json({
       success: true,
