@@ -1,31 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { supabase } from "@/lib/supabase"
-
-export interface Booking {
-  id: string
-  booking_reference: string
-  guest_name: string
-  email: string
-  phone: string
-  nationality?: string
-  check_in: string
-  check_out: string
-  room_type: string
-  room_number?: string
-  guests: number
-  nights: number
-  total_amount: number
-  currency: string
-  special_requests?: string
-  purpose_of_visit?: string
-  payment_method?: string
-  payment_status: string
-  status: string
-  created_at: string
-  updated_at: string
-}
+import type { Booking } from "@/lib/types"
 
 export function useBookings() {
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -37,18 +13,14 @@ export function useBookings() {
       setLoading(true)
       setError(null)
 
-      const { data, error: fetchError } = await supabase
-        .from("bookings")
-        .select("*")
-        .order("created_at", { ascending: false })
-
-      if (fetchError) {
-        console.error("Error fetching bookings:", fetchError)
-        throw fetchError
+      const response = await fetch("/api/bookings", { cache: "no-cache" })
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to fetch bookings")
       }
-
-      console.log("✅ Bookings fetched successfully:", data)
-      setBookings(data || [])
+      const data = await response.json()
+      console.log("✅ Bookings fetched successfully:", data.bookings)
+      setBookings(data.bookings || [])
     } catch (err) {
       console.error("❌ Error in fetchBookings:", err)
       setError(err instanceof Error ? err.message : "Failed to fetch bookings")
@@ -62,19 +34,18 @@ export function useBookings() {
     try {
       console.log("🔄 Creating booking:", bookingData)
 
-      const { data, error: createError } = await supabase.from("bookings").insert([bookingData]).select().single()
-
-      if (createError) {
-        console.error("❌ Error creating booking:", createError)
-        throw createError
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bookingData),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to create booking")
       }
-
-      console.log("✅ Booking created successfully:", data)
-
-      // Refresh bookings list
+      console.log("✅ Booking created successfully:", data.booking)
       await fetchBookings()
-
-      return data
+      return data.booking
     } catch (err) {
       console.error("❌ Error in createBooking:", err)
       throw err
@@ -85,36 +56,18 @@ export function useBookings() {
     try {
       console.log("🔄 Updating booking:", id, updates)
 
-      const { data, error: updateError } = await supabase
-        .from("bookings")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single()
-
-      if (updateError) {
-        console.error("❌ Error updating booking:", updateError)
-        throw updateError
+      const response = await fetch(`/api/bookings/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to update booking")
       }
-
-      console.log("✅ Booking updated successfully:", data)
-
-      // If booking was cancelled or checked-out, mark room as available
-      if (updates.status && ["cancelled", "checked-out"].includes(updates.status) && data?.room_id) {
-        const { error: roomErr } = await supabase
-          .from("rooms")
-          .update({ status: "available" })
-          .eq("id", data.room_id)
-
-        if (roomErr) {
-          console.error("Error updating room status:", roomErr)
-        }
-      }
-
-      // Refresh bookings list
+      console.log("✅ Booking updated successfully:", data.booking)
       await fetchBookings()
-
-      return data
+      return data.booking
     } catch (err) {
       console.error("❌ Error in updateBooking:", err)
       throw err
@@ -125,46 +78,17 @@ export function useBookings() {
     try {
       console.log("🔄 Cancelling booking:", id, "Reason:", reason)
 
-      const updates: Partial<Booking> = {
-        status: "cancelled",
-        updated_at: new Date().toISOString(),
+      const params = reason ? `?reason=${encodeURIComponent(reason)}` : ""
+      const response = await fetch(`/api/bookings/${id}${params}`, {
+        method: "DELETE",
+      })
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to cancel booking")
       }
-
-      // If reason is provided, we could store it in special_requests or a separate field
-      if (reason) {
-        updates.special_requests = `CANCELLED: ${reason}`
-      }
-
-      const { data, error: cancelError } = await supabase
-        .from("bookings")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single()
-
-      if (cancelError) {
-        console.error("❌ Error cancelling booking:", cancelError)
-        throw cancelError
-      }
-
-      console.log("✅ Booking cancelled successfully:", data)
-
-      // Free up the room
-      if (data?.room_id) {
-        const { error: roomErr } = await supabase
-          .from("rooms")
-          .update({ status: "available" })
-          .eq("id", data.room_id)
-
-        if (roomErr) {
-          console.error("Error updating room status:", roomErr)
-        }
-      }
-
-      // Refresh bookings list
+      console.log("✅ Booking cancelled successfully:", data.booking)
       await fetchBookings()
-
-      return data
+      return data.booking
     } catch (err) {
       console.error("❌ Error in cancelBooking:", err)
       throw err

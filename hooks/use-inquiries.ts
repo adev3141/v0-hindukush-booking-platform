@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import type { Inquiry } from "@/lib/supabase"
+import type { Inquiry } from "@/lib/types"
 
 export function useInquiries() {
   const [inquiries, setInquiries] = useState<Inquiry[]>([])

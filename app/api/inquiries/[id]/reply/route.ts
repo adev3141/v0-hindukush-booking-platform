@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { getAdminDb } from "@/lib/firebaseAdmin"
 
 export async function POST(request: NextRequest, { params }: { params: { id: string } }) {
   try {
@@ -9,25 +9,25 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
       return NextResponse.json({ success: false, error: "Reply message is required" }, { status: 400 })
     }
 
-    const { data, error } = await supabaseAdmin
-      .from("inquiries")
-      .update({
-        reply: reply.trim(),
-        status: "replied",
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", params.id)
-      .select()
+    const db = getAdminDb()
+    const docRef = db.collection("inquiries").doc(params.id)
+    const doc = await docRef.get()
 
-    if (error) throw error
-
-    if (!data || data.length === 0) {
+    if (!doc.exists) {
       return NextResponse.json({ success: false, error: "Inquiry not found" }, { status: 404 })
     }
 
+    await docRef.update({
+      reply: reply.trim(),
+      status: "replied",
+      updated_at: new Date().toISOString(),
+    })
+
+    const updated = await docRef.get()
+
     return NextResponse.json({
       success: true,
-      inquiry: data[0],
+      inquiry: { id: docRef.id, ...updated.data() },
       message: "Reply sent successfully",
     })
   } catch (error) {
